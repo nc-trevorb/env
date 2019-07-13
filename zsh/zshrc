@@ -1,0 +1,178 @@
+
+# os_name='macOS'
+os_name='debian'
+# os_name='openbsd'
+
+### Completion ###
+setopt COMPLETE_IN_WORD
+autoload -U compinit
+compinit
+zstyle ':completion::complete:*' use-cache 1
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # case insensitive completion
+
+
+### Colors ###
+export CLICOLOR=1
+autoload colors
+colors
+
+
+### History ###
+export HISTFILE=$HOME/.zsh_history
+export HISTSIZE=10000
+export SAVEHIST=10000
+setopt EXTENDED_HISTORY     # add timestamps to history
+setopt APPEND_HISTORY       # adds history
+setopt INC_APPEND_HISTORY   # adds history incrementally
+setopt SHARE_HISTORY        # share across sessions
+setopt HIST_IGNORE_ALL_DUPS # don't record dupes in history
+setopt HIST_IGNORE_DUPS
+setopt HIST_REDUCE_BLANKS
+
+
+### Settings ###
+unsetopt correct_all
+bindkey -e                                       # use emacs key bindings
+bindkey '^r' history-incremental-search-backward # make Control-r work
+bindkey '^[[Z' reverse-menu-complete             # shift-tab to cycle backwards
+bindkey "^[[3~" delete-char                      # make delete key work
+bindkey "^[3;5~" delete-char                     # make delete key work
+bindkey "^U" backward-kill-line                  # C-u acts like bash
+autoload -U select-word-style
+select-word-style bash
+
+setopt LOCAL_OPTIONS # allow functions to have local options
+setopt LOCAL_TRAPS   # allow functions to have local traps
+setopt PROMPT_SUBST
+setopt AUTO_CD
+setopt RC_QUOTES     # 'allow ''single'' quote interpolation'
+stty -ixon -ixoff    # disable scroll lock
+export EDITOR=vim
+set -o emacs
+
+function try_source() {
+    [ -f "$1" ] && source "$1"
+}
+
+try_source $HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+try_source $HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'
+try_source $HOME/.zsh/
+try_source /usr/local/share/chruby/chruby.sh
+try_source /usr/local/share/chruby/auto.sh
+try_source /usr/local/share/gem_home/gem_home.sh
+
+
+### Prompt ###
+plain='\e[0m'
+
+# macOS
+# ps_os_color="$(tput setab 3)$(tput setaf 0)"
+# ps_color="$(tput setab 5)$(tput setaf 0)"
+
+# openbsd
+# ps_os_color="$(tput setab 6)$(tput setaf 0)"
+# ps_color="$(tput setab 1)$(tput setaf 0)"
+
+# debian
+ps_os_color="$(tput setab 2)$(tput setaf 0)"
+ps_color="$(tput setab 4)$(tput setaf 0)"
+
+
+function ps1_() {
+        if git rev-parse 2> /dev/null; then
+                ps_git_branch="${ps_color}git:$(git rev-parse --abbrev-ref HEAD)${plain} "
+        else
+                ps_git_branch=""
+        fi
+
+        if [[ -z $PS_PYTHON_ENV ]]; then
+                ps_python_env=""
+        else
+                ps_python_env="${ps_color}python:$PS_PYTHON_ENV${plain} "
+        fi
+
+        if type chruby > /dev/null; then
+                ps_ruby_version="${ps_color}ruby:$(chruby | grep \* | sed 's/.* //g')${plain} "
+        else
+                ps_ruby_version=""
+        fi
+
+        ps_os="${ps_os_color}${os_name}${plain} "
+        ps_timestamp="${ps_color}$(date +'%H:%M:%S')${plain} "
+        ps_dir="${ps_color}%~${plain} "
+        ps_env_vars="${ps_ruby_version}${ps_python_env}${ps_git_branch}"
+
+        echo "${ps_os}${ps_timestamp}${ps_dir}${ps_env_vars}"
+}
+
+export PS1='$(ps1_)
+> '
+
+### Aliases ###
+case "$os_name" in
+    openbsd)
+        alias t='tree'
+        alias ls='colorls -G'
+        alias l='ls -lhF'
+        ;;
+    *)
+        alias t='tree -C --dirsfirst -I "coverage|build|dist|*srv|elm-stuff|_build|*.byte|*.native|__pycache__|static" '
+        alias ls='ls --color=auto'
+        alias l='ls -lhpG'
+        alias grep='grep --color=auto'
+        ;;
+esac
+
+alias sudo='sudo ' # make aliases work with "sudo"
+alias tmux='tmux -2' # let tmux use 256 colors
+
+alias rg='rg -i -M 500'
+alias rga='rg --no-ignore'
+alias rgall='rg -M 0 --no-ignore'
+
+alias e='emacs'
+
+alias t2='t -L 2'
+
+### Functions ###
+function f() {
+    find $1 -not -path "*/.git/*"
+}
+
+function d() {
+    if [[ -z "$1" ]]; then
+        pushd $HOME 2>&1 > /dev/null
+    else
+        pushd "$1" 2>&1 > /dev/null
+    fi
+}
+
+function du() {
+    popd 2>&1 > /dev/null
+}
+
+function ds() {
+    dirs | tr ' ' '\n'
+}
+
+function pss() {
+    local process_names=$(echo $@ | sed 's/ /\\|/g')
+    ps aux | grep -v grep | grep "$process_names"
+}
+
+function wip() {
+    if [[ $@ == "" ]]; then
+        local msg=$(date +'%H:%M:%S')
+    else
+        local msg="$(echo $(date +'%H:%M:%S') '==>' $@)"
+    fi
+
+    git add -A
+    git commit -m $msg
+}
+
+# opam configuration
+test -r /home/vagrant/.opam/opam-init/init.zsh && . /home/vagrant/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
+
+TZ='America/Denver'; export TZ

@@ -1,0 +1,32 @@
+[user]
+  name = Benjamin Trevor
+  email = benjamin_trevor@fastmail.com
+
+[core]
+  excludesfile = ~/.gitignore_global
+
+[push]
+  default = matching
+
+[color]
+  status = auto
+  branch = auto
+  interactive = auto
+  diff = auto
+  grep = auto
+
+[alias]
+  st = status
+  co = checkout
+  br = branch
+  rl = reflog --date=iso
+  chp = cherry-pick
+  sha = rev-list -1
+
+  amend = commit --amend --no-edit
+  amendA = !git add -A && git commit --amend --no-edit
+
+  l = log -10 --graph --date=short --format=format:'%C(blue)%h%C(white) %C(240)- %C(white)%s%C(240) -- %an, %ad'
+  lb = log -10 --graph --date=short --format=format:'%C(blue)%h%C(white) %C(green)%d %C(white)%s%C(240) -- %an, %ad'
+  ll = log --graph --date=short --format=format:'%C(blue)%h%C(white) %C(240)- %C(white)%s%C(240) -- %an, %ad'
+  llb = log --graph --date=short --format=format:'%C(blue)%h%C(white) %C(green)%d %C(white)%s%C(240) -- %an, %ad'
