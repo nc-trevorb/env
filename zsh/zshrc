@@ -1,7 +1,7 @@
 
-# os_name='macOS'
-os_name='debian'
-# os_name='openbsd'
+export OS_NAME='macOS'
+# OS_NAME='debian'
+# OS_NAME='openbsd'
 
 ### Completion ###
 setopt COMPLETE_IN_WORD
@@ -67,16 +67,16 @@ try_source /usr/local/share/gem_home/gem_home.sh
 plain='\e[0m'
 
 # macOS
-# ps_os_color="$(tput setab 3)$(tput setaf 0)"
-# ps_color="$(tput setab 5)$(tput setaf 0)"
+ps_os_color="$(tput setab 3)$(tput setaf 0)"
+ps_color="$(tput setab 5)$(tput setaf 0)"
 
 # openbsd
 # ps_os_color="$(tput setab 6)$(tput setaf 0)"
 # ps_color="$(tput setab 1)$(tput setaf 0)"
 
 # debian
-ps_os_color="$(tput setab 2)$(tput setaf 0)"
-ps_color="$(tput setab 4)$(tput setaf 0)"
+# ps_os_color="$(tput setab 2)$(tput setaf 0)"
+# ps_color="$(tput setab 4)$(tput setaf 0)"
 
 
 function ps1_() {
@@ -92,13 +92,14 @@ function ps1_() {
                 ps_python_env="${ps_color}python:$PS_PYTHON_ENV${plain} "
         fi
 
-        if type chruby > /dev/null; then
-                ps_ruby_version="${ps_color}ruby:$(chruby | grep \* | sed 's/.* //g')${plain} "
-        else
+        local ps_ruby=$(type chruby > /dev/null && chruby | grep \* | sed 's/.* //g')
+        if [[ -z $ps_ruby ]]; then
                 ps_ruby_version=""
+        else
+                ps_ruby_version="${ps_color}ruby:${ps_ruby}${plain} "
         fi
 
-        ps_os="${ps_os_color}${os_name}${plain} "
+        ps_os="${ps_os_color}${OS_NAME}${plain} "
         ps_timestamp="${ps_color}$(date +'%H:%M:%S')${plain} "
         ps_dir="${ps_color}%~${plain} "
         ps_env_vars="${ps_ruby_version}${ps_python_env}${ps_git_branch}"
@@ -110,7 +111,7 @@ export PS1='$(ps1_)
 > '
 
 ### Aliases ###
-case "$os_name" in
+case "$OS_NAME" in
     openbsd)
         alias t='tree'
         alias ls='colorls -G'
@@ -118,9 +119,10 @@ case "$os_name" in
         ;;
     *)
         alias t='tree -C --dirsfirst -I "coverage|build|dist|*srv|elm-stuff|_build|*.byte|*.native|__pycache__|static" '
-        alias ls='ls --color=auto'
-        alias l='ls -lhpG'
+        alias ls='ls -G'
+        alias l='ls -lhp'
         alias grep='grep --color=auto'
+        alias v='vagrant'
         ;;
 esac
 
