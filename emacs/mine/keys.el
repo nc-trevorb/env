@@ -98,6 +98,7 @@
 (define-key my-keys-minor-mode-map (kbd ": r i") 'string-rectangle)
 (define-key my-keys-minor-mode-map (kbd ": r r") 'string-rectangle)
 (define-key my-keys-minor-mode-map (kbd ": r k") 'kill-rectangle)
+(define-key my-keys-minor-mode-map (kbd ": r y") 'yank-rectangle)
 
 (define-key my-keys-minor-mode-map (kbd ": m s") 'kmacro-start-macro)
 (define-key my-keys-minor-mode-map (kbd ": m e") 'kmacro-end-macro)
