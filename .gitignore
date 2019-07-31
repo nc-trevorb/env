@@ -4,3 +4,5 @@ Vagrantfile
 boxes
 package.box
 *.swp
+
+zsh/history
