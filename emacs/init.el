@@ -37,7 +37,6 @@
   (show-paren-mode 1)                                     ;; highlight matching parens
   (fset 'yes-or-no-p 'y-or-n-p)                           ;; faster prompts
   (setq confirm-nonexistent-file-or-buffer nil)           ;; don't prompt to create a new file
-  (define-key global-map (kbd "RET") 'newline-and-indent) ;; indent after pressing 'enter'
   (setq-default auto-compression-mode 0)                  ;; don't try to decompress files (like ~/.z)
   (setq-default fill-column 100)                          ;; text width for fill-paragraph
   (column-number-mode t)                                  ;; show column number
@@ -48,6 +47,7 @@
   (add-hook 'before-save-hook 'delete-trailing-whitespace)
   (global-auto-revert-mode)
   (setq set-mark-command-repeat-pop t)
+  (setq register-preview-delay 0)
 
  ;;; startup settings
   (setq initial-major-mode 'text-mode)
@@ -346,6 +346,7 @@
   (global-unset-key (kbd "C-x C-n"))
   (global-unset-key (kbd "C-x C-e"))
   (global-unset-key (kbd "C-x C-i"))
+  (global-unset-key (kbd "M-`"))
 
 
 
@@ -382,9 +383,9 @@
   (define-key my-keys-minor-mode-map (kbd "M-# v") 'eval-expression)
   (define-key my-keys-minor-mode-map (kbd "M-# )") 'eval-last-sexp)
 
-  (define-key my-keys-minor-mode-map (kbd "M-# k m") 'kmacro-to-register)
+  ;; (define-key my-keys-minor-mode-map (kbd "M-# k m") 'kmacro-to-register)
   ;; (define-key my-keys-minor-mode-map (kbd "M-# m") 'point-to-register)
-  (define-key my-keys-minor-mode-map (kbd "M-# j") 'jump-to-register)
+  ;; (define-key my-keys-minor-mode-map (kbd "M-# j") 'jump-to-register)
 
   ;; (define-key dired-mode-map (kbd "E") 'wdired-change-to-wdired-mode)
 

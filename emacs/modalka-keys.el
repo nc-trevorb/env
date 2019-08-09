@@ -12,12 +12,7 @@
 
   (defun bt/insert () (interactive) (modalka-mode -1))
   (defun bt/normal () (interactive) (modalka-mode) (deactivate-mark) (save-buffer))
-  (defun bt/normal-without-save () (interactive) (modalka-mode))
-
-  (defun bt/normal-keyboard-quit ()
-    (interactive)
-    (bt/normal-without-save)
-    (keyboard-quit))
+  (defun bt/-without-save () (interactive) (modalka-mode))
 
   (defmacro bt/defun-insert (fn original)
     `(defun ,fn ()
@@ -25,10 +20,10 @@
        (,original)
        (bt/insert)))
 
-  (defmacro bt/defun-insert-fn (fn body)
+  (defmacro bt/defun-insert-fn (fn &rest body)
     `(defun ,fn ()
        (interactive)
-       ,body
+       ,@body
        (bt/insert)))
 
   (defun bt/copy () (whole-line-or-region-kill-ring-save 1))
@@ -36,7 +31,7 @@
   (defun bt/comment () (whole-line-or-region-comment-dwim nil))
 
   (defun bt/kill () (whole-line-or-region-kill-region 1))
-  (defun bt/kill-to-bol () (kill-line 0))
+  (defun bt/kill-to-bol () (interactive) (kill-line 0))
   (defalias 'bt/kill-to-eol 'kill-line)
   (bt/defun-insert bt/update bt/kill)
   (bt/defun-insert bt/update-to-eol bt/kill-to-eol)
@@ -67,10 +62,27 @@
     (bt/delete)
     (insert s))
 
+  (defun bt/comment ()
+    (interactive)
+    ((whole-line-or-region-comment-dwim nil)))
+
+  (defun bt/comment-line ()
+    (interactive)
+    (bt/select-line)
+    (bt/comment))
+
   (defun bt/comment-paragraph ()
     (interactive)
     (mark-paragraph)
     (bt/comment))
+
+  (defun bt/repeat-command ()
+    (interactive)
+    (if bt/directional-key-repeat-seq
+        (if bt/directional-key-repeat-arg
+            (call-interactively ((key-binding bt/directional-key-repeat-seq) bt/directional-key-repeat-arg))
+          (call-interactively (key-binding bt/directional-key-repeat-seq)))
+      (message "no bt/directional-key-repeat-seq")))
 
   (defun bt/delete ()
     (interactive)
@@ -79,7 +91,7 @@
       (delete-char 1)))
 
   (bt/defun-insert bt/substitute bt/delete)
-  ;; (bt/defun-insert-fn bt/insert-on-next-line (end-of-line) (newline-and-indent))
+  (bt/defun-insert-fn bt/insert-on-next-line (end-of-line) (newline-and-indent))
 
   (defun bt/insert-on-previous-line ()
     (interactive)
@@ -110,16 +122,21 @@
     (cond
      ((string= target-key " ") nil) ;; region is already selected
 
-     ((string= target-key "l")
+     ((or (string= target-key "al") (string= target-key "l"))
       (move-beginning-of-line 1)
       (set-mark-command nil)
       (move-end-of-line 1)
-      (forward-char))))
+      (forward-char))
 
+     ((string= target-key "il")
+      (move-beginning-of-line 1)
+      (set-mark-command nil)
+      (move-end-of-line 1))))
 
   (defun bt/define-target-key (input-key target-key action)
     (let ((key-seq (concat input-key target-key)))
       (define-key modalka-mode-map key-seq (lambda () (interactive)
+                                             (setq bt/directional-key-repeat-seq key-seq)
                                              (bt/select-target-region target-key)
                                              (funcall action)
                                              (exchange-point-and-mark)))))
@@ -160,11 +177,12 @@
                                              (exchange-point-and-mark)))))
 
   (defun bt/define-until-key (cmd-key key action search)
-    (define-key modalka-mode-map (concat cmd-key key) (lambda (target) (interactive "c")
-                                                        (set-mark-command nil)
-                                                        (funcall search target)
-                                                        (funcall action)
-                                                        (exchange-point-and-mark))))
+    (let ((key-seq (concat cmd-key key)))
+      (define-key modalka-mode-map key-seq (lambda (target) (interactive "c")
+                                             (set-mark-command nil)
+                                             (funcall search target)
+                                             (funcall action)
+                                             (exchange-point-and-mark)))))
 
   (defun bt/define-until-keys (key action)
     (bt/define-until-key key "t" action (lambda (target) (search-forward (string target)) (backward-char)))
@@ -180,6 +198,8 @@
       (bt/define-until-keys key action)
       (bt/define-target-key key " " action)
       (bt/define-target-key key "l" action)
+      (bt/define-target-key key "al" action)
+      (bt/define-target-key key "il" action)
       (mapc (apply-partially 'bt/define-in-around-targets "i" key action) region-targets)
       (mapc (apply-partially 'bt/define-in-around-targets "a" key action) region-targets)))
 
@@ -192,21 +212,23 @@
   ;; ("C-," . "M-{")
   ;; ("C-." . "M-}")
   ;; ("C-w" . "C-M-h")
+  ;; ("C-w" . "C-M-h")
+
   :bind
   (:map my-keys-minor-mode-map
    ("C-t" . 'universal-argument)
    ("M-g M-g" . 'bt/git) ;("C-g" . 'bt/normal-keyboard-quit)
-   ("M-SPC" . 'bt/noop) ("C-@" . 'bt/normal)
+   ("M-SPC" . 'bt/noop) ("M-$" . 'bt/normal)
    ("M-RET" . 'bt/insert-on-previous-line)
 
    ("M-q" . 'bt/noop) ("C-q" . 'bt/noop)
    ("M-w" . 'bt/noop) ("C-M-h" . 'backward-kill-word)
-   ("M-b" . 'bt/noop) ("C-b" . 'backward-word)
-   ("M-p" . 'helm-show-kill-ring) ("C-p" . 'bt/paste-and-indent) ("M-C-p" . 'bt/paste)
-   ("M-f" . 'bt/noop) ("C-f" . 'forward-word) ("M-C-f" . 'bt/noop)
+   ("M-b" . 'bt/noop) ("C-b" . 'bt/noop)
+   ("C-p" . 'helm-show-kill-ring) ("M-p" . 'bt/paste-and-indent) ("M-C-p" . 'bt/paste)
+   ("M-f" . 'bt/noop) ("C-f" . 'bt/noop)
 
    ("M-a" . 'bt/noop) ("C-a" . 'back-to-indentation)
-   ("M-r" . 'bt/noop) ("C-r" . 'isearch-backward-regexp)
+   ("M-r" . 'bt/noop) ("C-r" . 'bt/noop)
    ("M-s" . 'bt/noop) ("C-s" . 'isearch-forward-regexp)
    ("M-t" . 'bt/noop) ("C-t" . 'bt/noop)
    ;; ("M-g" . 'bt/noop) ("C-g" . 'bt/noop)
@@ -218,15 +240,20 @@
 
    ("M-l" . 'bt/noop) ("C-l" . 'recenter-top-bottom)
    ("M-u" . 'bt/update-to-bol) ("C-u" . 'bt/update-to-eol)
-   ("M-y" . 'bt/noop) ("C-y" . 'forward-to-word)
-   ;; ("M-:" . 'bt/noop) ("C-:" . 'bt/noop)
+   ("M-y" . 'bt/noop) ("C-y" . 'bt/noop)
+   ("M-:" . 'bt/noop) ("C-:" . 'bt/noop)
 
-   ("M-h" . 'move-beginning-of-line) ("C-h" . 'backward-char)
-   ("M-n" . 'bt/noop) ("C-n" . 'next-line)
-   ("M-e" . 'bt/noop) ("C-e" . 'previous-line)
-   ("M-i" . 'move-end-of-line) ("C-i" . 'forward-char)
-   ("M-o" . 'indent-for-tab-command) ;; ("C-o" . 'bt/noop)
-   ("M-'" . 'bt/noop) ("C-^" . 'whole-line-or-region-comment-dwim)
+   ("C-h" . 'bt/noop) ("M-h" . 'backward-char)
+   ("C-n" . 'bt/noop) ("M-n" . 'next-line)
+   ("C-e" . 'bt/noop) ("M-e" . 'previous-line)
+   ("M-!" . 'bt/noop) ("M-i" . 'forward-char)
+   ("C-o" . 'bt/noop) ("M-o" . 'forward-char)
+   ("M-'" . 'bt/noop) ("M-%" . 'whole-line-or-region-comment-dwim)
+
+   ("C-M-h" . 'windmove-left)
+   ("C-M-n" . 'windmove-down)
+   ("C-M-e" . 'windmove-up)
+   ("C-M-i" . 'windmove-right)
 
    ("M-k" . 'bt/kill-to-bol) ("C-k" . 'bt/kill-to-eol)
    ("M-m" . 'bt/noop)
@@ -234,11 +261,8 @@
    ("M-." . 'bt/noop) ("M-}" . 'forward-paragraph)
    ("M-/" . 'bt/noop) ("C-_" . 'undo)
 
-   :map minibuffer-local-completion-map
-   ("C-o" . 'minibuffer-complete)
-
-   :map global-map
-   ("C-o" . 'hippie-expand)
+   ;; :map minibuffer-local-completion-map
+   ;; ("C-o" . 'minibuffer-complete)
 
    :map modalka-mode-map
    ("DEL" . 'bt/noop)
@@ -253,26 +277,23 @@
    ("~" . 'bt/noop) ("`" . 'bt/noop)
    ("+" . 'bt/noop) ("=" . 'bt/noop)
 
-   ("q" . 'bt/noop) ("Q" . 'bt/noop)
+   ("q" . 'query-replace) ("Q" . 'query-replace-regexp)
    ("w" . 'backward-kill-word) ("W" . 'bt/noop)
-   ("b" . 'backward-word) ("B" . 'bt/noop)
+   ("b" . 'bt/noop) ("B" . 'bt/noop)
    ("p" . 'bt/paste-and-indent) ("P" . 'bt/paste)
-   ("f" . 'forward-word) ("F" . 'bt/noop)
+   ("f" . 'bt/noop) ("F" . 'bt/noop)
 
    ("a" . 'bt/insert) ("A" . 'bt/insert-at-indentation)
-   ("r" . 'bt/replace-with-char) ("R" . 'bt/replace-with-str)
-   ("s" . 'bt/substitute) ("S" . 'bt/replace-line)
+   ("r" . 'replace-string) ("R" . 'replace-regexp)
+   ("s" . 'isearch-forward) ("S" . 'isearch-forward-regexp)
    ("t" . 'bt/noop) ("T" . 'bt/noop)
 
-   ("x" . 'bt/delete) ("X" . 'bt/delete)
-   ;; ("c" . 'bt/directional-prefix)
-   ("C" . 'bt/comment-paragraph)
-   ;; ("d" . 'bt/directional-prefix)
-   ("D" . 'bt/noop)
-   ;; ("v" . 'bt/directional-prefix)
-   ("V" . 'bt/select-line)
+   ("x" . 'bt/delete) ("X" . 'bt/noop)
+   ("C" . 'bt/comment-paragraph) ;; ("c" . 'bt/directional-prefix)
+   ("D" . 'bt/noop) ;; ("d" . 'bt/directional-prefix)
+   ("V" . 'bt/select-line) ;; ("v" . 'bt/directional-prefix)
 
-   ("gg" . 'goto-line) ("G" . 'bt/noop)
+   ("gl" . 'goto-line) ("G" . 'bt/noop)
 
    ("ga" . 'back-to-indentation)
    ("gh" . 'move-beginning-of-line)
@@ -284,37 +305,43 @@
    ("gwe" . 'windmove-up)
    ("gwi" . 'windmove-right)
    ("gs" . 'exchange-point-and-mark)
+   ("gm" . 'jump-to-register)
 
-   ("l" . 'bt/noop) ("L" . 'bt/noop)
-   ;; ("u" . 'bt/directional-prefix)
-   ("U" . 'bt/update-to-eol)
-   ("y" . 'forward-to-word) ("Y" . 'bt/noop)
-   (":" . 'bt/noop) (";" . 'bt/noop)
+   ("z" . 'backward-to-word) ("Z" . 'move-beginning-of-line)
+   ("l" . 'backward-word) ("L" . 'move-beginning-of-line)
+   ("U" . 'bt/update-to-eol) ;; ("u" . 'bt/directional-prefix)
+   ("y" . 'forward-word) ("Y" . 'move-end-of-line)
+   (":" . 'forward-to-word) (";" . 'move-end-of-line)
    ("{" . 'bt/noop) ("[" . 'bt/noop)
    ("}" . 'bt/noop) ("]" . 'bt/noop)
    ("|" . 'bt/noop) ("\\" . 'bt/noop)
 
-   ("h" . 'backward-char) ("H" . 'bt/noop)
-   ("n" . 'next-line) ("N" . 'bt/noop)
-   ("e" . 'previous-line) ("E" . 'bt/noop)
-   ("i" . 'forward-char) ("I" . 'bt/noop)
+   ("h" . 'backward-char) ("H" . 'windmove-left)
+   ("n" . 'next-line) ("N" . 'windmove-down)
+   ("e" . 'previous-line) ("E" . 'windmove-up)
+   ("i" . 'forward-char) ("I" . 'windmove-right)
    ("o" . 'bt/insert-after) ("O" . 'bt/insert-at-eol)
-   ("'" . 'bt/noop) ("\"" . 'bt/noop)
+   ("'" . 'bt/repeat-command) ("\"" . 'bt/noop)
 
-   ;; ("k" . 'bt/directional-prefix)
-   ("K" . 'bt/noop)
-   ("m" . 'bt/noop) ("M" . 'bt/noop)
+   ("K" . 'bt/kill-to-eol) ;; ("k" . 'bt/directional-prefix)
+   ("m" . 'point-to-register) ("M" . 'bt/noop)
    ("," . 'backward-paragraph) ("<" . 'bt/noop)
    ("." . 'forward-paragraph) (">" . 'bt/noop)
-   ("/" . 'bt/noop)
+   ("/" . 'undo)
 
-   ("j" . 'bt/join-line-below) ("J" . 'bt/noop)
-   ("z" . 'bt/noop) ("Z" . 'bt/noop))
+   ("j" . 'bt/join-line-below) ("J" . 'bt/join-line-above)
+
+   ;; :map global-map
+   ;; ("C-o" . 'hippie-expand)
+
+   )
 
   :config
   (add-hook 'text-mode-hook #'modalka-mode)
   (add-hook 'prog-mode-hook #'modalka-mode)
 
+  (setq bt/directional-key-repeat-seq nil)
+  (setq bt/directional-key-repeat-arg nil)
   (add-hook 'post-command-hook
             (lambda ()
               (let ((color (cond (modalka-mode '("brightblack" . "green"))
