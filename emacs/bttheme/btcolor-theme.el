@@ -30,17 +30,9 @@
     ("magenta" . "magenta")
     ("brightmagenta" . "brightmagenta")
 
-    ;; normal colors
-
-
-    ("darkgray" . (if (getenv "INVERSE_TERMINAL") "color-251" "color-235"))
-    ("gray" . (if (getenv "INVERSE_TERMINAL") "color-246" "color-237"))
-    ("lightgray" . (if (getenv "INVERSE_TERMINAL") "color-242" "color-240"))
-
-    ;; inverted colors
-    ;; ("darkgray" . "color-251")
-    ;; ("gray" . "color-246")
-    ;; ("lightgray" . "color-242")
+    ("darkgray" . "color-235")
+    ("gray" . "color-237")
+    ("lightgray" . "color-240")
 
     ))
 
@@ -188,11 +180,8 @@ Also bind `class' to ((class color) (min-colors 89))."
    `(magit-reflog-other ((t (:foreground ,cyan))))
 
 ;;;;; ocaml
-   `(caml-types-def-face       ((t (:background ,red :foreground ,brightblack))))
-   `(caml-types-expr-face       ((t (:background ,green :foreground ,brightblack))))
-   `(caml-types-occ-face       ((t (:background ,blue :foreground ,brightblack))))
-   `(caml-types-scope-face       ((t (:background ,cyan :foreground ,brightblack))))
-   `(caml-types-typed-face       ((t (:background ,magenta :foreground ,brightblack))))
+   `(tuareg-font-lock-extension-node-face ((t (:background ,gray :foreground ,blue))))
+   `(tuareg-font-lock-infix-extension-node-face ((t (:background ,gray :foreground ,blue))))
 
 
 ;;;;; org-mode

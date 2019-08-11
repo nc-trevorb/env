@@ -112,6 +112,15 @@
 
   (use-package expand-region :config (setq expand-region-fast-keys-enabled nil))
 
+  (use-package dired
+    :config
+    ;; not working in :bind
+    (define-key dired-mode-map (kbd "U") 'wdired-change-to-wdired-mode)
+
+    (with-eval-after-load "wdired"
+      (define-key wdired-mode-map (kbd "M-# M-$") 'wdired-finish-edit)))
+
+
   ;; deferred packages
   (use-package cc-mode :defer t
     :config
@@ -156,6 +165,12 @@
             "\\.ru$" "Guardfile$" "Vagrantfile$")))
 
   (use-package tuareg :defer t
+    :bind
+    (:map my-keys-minor-mode-map
+          ("C-e" . 'merlin-error-prev)
+          ("C-n" . 'merlin-error-next)
+          ("C-t" . 'merlin-type-enclosing))
+
     :config
     ;; merlin setup w/opam
     (let ((opam-share (ignore-errors (car (process-lines "opam" "config" "var" "share")))))
@@ -169,14 +184,20 @@
         ;; Use opam switch to lookup ocamlmerlin binary
         (setq merlin-command 'opam)))
 
+    (defun bt/first-merlin-error ()
+      (interactive)
+      (bt/bob)
+      (merlin-error-next))
+
+    (define-key my-keys-minor-mode-map (kbd "C-e") 'bt/first-merlin-error)
+    (define-key my-keys-minor-mode-map (kbd "C-h") 'merlin-error-prev)
+    (define-key my-keys-minor-mode-map (kbd "M-!") 'merlin-error-next)
+
+    (define-key my-keys-minor-mode-map (kbd "C-t") 'merlin-type-enclosing)
+
     ;; menhir/ocamllex
     (add-to-list 'auto-mode-alist '("\\.mll\\'" . tuareg-mode))
-    (add-to-list 'auto-mode-alist '("\\.mly\\'" . tuareg-mode))
-
-    (define-key my-keys-minor-mode-map (kbd "C-M-e") 'merlin-error-prev)
-    (define-key my-keys-minor-mode-map (kbd "M-e") 'merlin-error-next)
-
-    (define-key my-keys-minor-mode-map (kbd "M-t") 'merlin-type-enclosing))
+    (add-to-list 'auto-mode-alist '("\\.mly\\'" . tuareg-mode)))
 
   (defun bt/git ()
     (interactive)
@@ -198,7 +219,6 @@
 
   (use-package org :defer t
     :init
-    (message "org init")
     (defun bt/org-update-all-statistics ()
       (interactive)
       (let ((current-prefix-arg 4)) ;; emulate C-u
@@ -324,19 +344,8 @@
 
 ;; basic keys
  ;;; new
-  ;; (global-unset-key (kbd "M-ESC ESC"))
-  ;; (global-unset-key (kbd "C-x o"))
-  ;; (global-unset-key (kbd "C-x C-o"))
-  ;; (global-unset-key (kbd "C-x 1"))
-  ;; (global-unset-key (kbd "C-x 1"))
-  ;; (global-unset-key (kbd "C-x 2"))
-  ;; (global-unset-key (kbd "C-x 3"))
-  ;; (global-unset-key (kbd "C-x m"))
-  ;; (global-unset-key (kbd "M-'"))
+  ;; (global-set-key (kbd "C-z") nil) ;; can still suspend with C-x C-z
 
-  (global-set-key (kbd "C-z") nil) ;; can still suspend with C-x C-z
-
-  (define-key isearch-mode-map (kbd "C-f") 'isearch-yank-word-or-char)
 
   (global-unset-key (kbd "C-x h"))
   (global-unset-key (kbd "C-x n"))
@@ -347,25 +356,6 @@
   (global-unset-key (kbd "C-x C-e"))
   (global-unset-key (kbd "C-x C-i"))
   (global-unset-key (kbd "M-`"))
-
-
-
-  ;; need this so redo can work
-  (define-key my-keys-minor-mode-map (kbd "C-/") 'undo-tree-undo)
-
-  ;; (define-key my-keys-minor-mode-map (kbd "C-x C-f")   'find-file)
-  (define-key my-keys-minor-mode-map (kbd "C-x z")     'delete-other-windows)
-  (define-key my-keys-minor-mode-map (kbd "C-x /")     'winner-undo)
-  (define-key my-keys-minor-mode-map (kbd "C-x \\")    'split-window-right)
-  (define-key my-keys-minor-mode-map (kbd "C-x |")    'split-window-right)
-  (define-key my-keys-minor-mode-map (kbd "C-x -")     'split-window-below)
-  (define-key my-keys-minor-mode-map (kbd "C-x _")     'split-window-below)
-  (define-key my-keys-minor-mode-map (kbd "C-x C-d")   'delete-window)
-  (define-key my-keys-minor-mode-map (kbd "C-x k")   'delete-window)
-  (define-key my-keys-minor-mode-map (kbd "C-x C-k")   'delete-window)
-  ;; (define-key my-keys-minor-mode-map (kbd "C-x C-o")   'pop-global-mark)
-
-  ;;(define-key my-keys-minor-mode-map (bt/kbd "C-'") 'whole-line-or-region-comment-dwim)
 
   (define-key my-keys-minor-mode-map (kbd "M-# q RET") 'delete-window)
   (define-key my-keys-minor-mode-map (kbd "M-# q a RET") 'save-buffers-kill-terminal)
@@ -383,28 +373,11 @@
   (define-key my-keys-minor-mode-map (kbd "M-# v") 'eval-expression)
   (define-key my-keys-minor-mode-map (kbd "M-# )") 'eval-last-sexp)
 
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# k m") 'kmacro-to-register)
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# m") 'point-to-register)
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# j") 'jump-to-register)
-
-  ;; (define-key dired-mode-map (kbd "E") 'wdired-change-to-wdired-mode)
-
-  ;; (with-eval-after-load "wdired"
-  ;;   (define-key wdired-mode-map (kbd "M-# w") 'wdired-finish-edit))
-
-
   (define-key my-keys-minor-mode-map (kbd "M-# e s") 'switch-to-buffer)
   (define-key my-keys-minor-mode-map (kbd "M-# e i") 'ibuffer)
   (define-key my-keys-minor-mode-map (kbd "M-# e SPC") 'helm-projectile-find-file)
   (define-key my-keys-minor-mode-map (kbd "M-# e RET") (lambda () (interactive) (revert-buffer :ignore-auto :noconfirm)))
   (define-key my-keys-minor-mode-map (kbd "M-# e d") 'dired-jump)
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# e D") (lambda () (interactive) (dired (projectile-project-root))))
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# e f") 'find-file)
-
-  (define-key my-keys-minor-mode-map (kbd "M-# s s")     'replace-string)
-  (define-key my-keys-minor-mode-map (kbd "M-# s r")     'replace-regexp)
-  (define-key my-keys-minor-mode-map (kbd "M-# s q s")   'query-replace)
-  (define-key my-keys-minor-mode-map (kbd "M-# s q r")   'query-replace-regexp)
 
   (define-key my-keys-minor-mode-map (kbd "M-s")     'deadgrep)
 
