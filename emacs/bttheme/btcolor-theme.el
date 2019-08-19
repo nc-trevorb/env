@@ -61,8 +61,9 @@ Also bind `class' to ((class color) (min-colors 89))."
 
    `(success ((t (:foreground ,green :weight bold))))
    `(warning ((t (:foreground ,red :weight bold))))
+   `(error ((t (:foreground "color-124" :weight bold))))
 
-   `(mode-line ((t (:background ,green :foreground ,brightblack ))))
+   `(Mode-line ((t (:background ,green :foreground ,brightblack ))))
    ;; `(mode-line-inactive ((t (:background ,gray :foreground ,white ))))
    `(mode-line-inactive ((t (:inherit linum))))
    `(mode-line-buffer-id ((t (:foreground ,white :weight bold))))
@@ -166,7 +167,6 @@ Also bind `class' to ((class color) (min-colors 89))."
    `(magit-signature-untrusted ((t (:foreground ,yellow))))
    `(magit-signature-expired   ((t (:foreground ,cyan))))
    `(magit-signature-revoked   ((t (:foreground ,magenta))))
-   ;; '(magit-signature-error     ((t (:inherit    magit-signature-bad))))
    `(magit-cherry-unmatched    ((t (:foreground ,cyan))))
    `(magit-cherry-equivalent   ((t (:foreground ,magenta))))
    `(magit-reflog-commit       ((t (:foreground ,green))))

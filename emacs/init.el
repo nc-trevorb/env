@@ -48,20 +48,44 @@
   (global-auto-revert-mode)
   (setq set-mark-command-repeat-pop t)
   (setq register-preview-delay 0)
+  (setq scroll-conservatively 101)
+
+  (setq-default mode-line-format
+                (list
+                 "      "
+         '(:eval (when buffer-read-only
+                   (propertize "RO "
+                               'face 'error)))
+
+         "%b:%l " ;; buffer name : line number
+
+         '(:eval (when (buffer-modified-p)
+                   (propertize " (modified)"
+                               'face 'font-lock-warning-face)))
+
+         " [%o] " ;; mode-name
+
+         'mode-line-modes
+         ))
+
 
  ;;; startup settings
+
   (setq initial-major-mode 'text-mode)
   (setq inhibit-startup-screen t)
   (setq initial-scratch-message (concat "# " (replace-regexp-in-string " (.*\n.*" "" (emacs-version)) "\n\n"))
 
 ;; packages
   (use-package projectile
+    :diminish
     :config
     (projectile-global-mode)
     (setq projectile-globally-ignored-directories '("node_modules" "app/assets" "tmp" "vendor" "elpa" "zsh/zsh-syntax-highlighting"))
     (setq projectile-globally-ignored-file-suffixes '(".png" ".gif" ".pdf")))
 
-  (use-package helm-config :config (helm-mode 1))
+  (use-package helm-config
+    :diminish (helm-mode . "")
+    :config (helm-mode 1))
 
   (use-package helm-projectile
     :config
@@ -81,19 +105,9 @@
     (setq linum-format "%4d│")
     (add-hook 'prog-mode-hook #'linum-mode))
 
+  (use-package eldoc :diminish)
   (use-package hideshow
     :config
-    (defun so/set-selective-display-dlw (&optional level)
-      "Fold text indented same of more than the cursor.
-     If level is set, set the indent level to LEVEL.
-     If 'selective-display' is already set to LEVEL, clicking
-     F5 again will unset 'selective-display' by setting it to 0."
-      (interactive "P")
-      (back-to-indentation)
-      (if (eq selective-display (1+ (current-column)))
-          (set-selective-display 0)
-        (set-selective-display (or level (1+ (current-column))))))
-
     (add-to-list 'hs-special-modes-alist
                  '(nxml-mode
                    "<!--\\|<[^/>]*[^/]>"
@@ -101,15 +115,10 @@
 
                    "<!--"
                    sgml-skip-tag-forward
-                   nil))
-
-    (define-key my-keys-minor-mode-map (kbd "C-M-f") 'so/set-selective-display-dlw)
-    (define-key my-keys-minor-mode-map (kbd "C-M-u") '(lambda () (interactive) (so/set-selective-display-dlw 0))))
+                   nil)))
 
   (use-package uniquify :config (setq uniquify-buffer-name-style 'forward))
-
-  (use-package whole-line-or-region :config (whole-line-or-region-mode))
-
+  (use-package whole-line-or-region :diminish :config (whole-line-or-region-mode))
   (use-package expand-region :config (setq expand-region-fast-keys-enabled nil))
 
   (use-package dired
@@ -186,14 +195,32 @@
 
     (defun bt/first-merlin-error ()
       (interactive)
-      (bt/bob)
-      (merlin-error-next))
+      ;; FIXME figure out how to stay at excursion when pressing enter, cancel with C-g
+      (save-excursion
+        (bt/bob)
+        (merlin-error-next)))
 
-    (define-key my-keys-minor-mode-map (kbd "C-e") 'bt/first-merlin-error)
-    (define-key my-keys-minor-mode-map (kbd "C-h") 'merlin-error-prev)
-    (define-key my-keys-minor-mode-map (kbd "M-!") 'merlin-error-next)
+    (defun bt/dune-promote ()
+      (interactive)
+      (let ((exit-code (shell-command "dune promote")))
+        (if (= 0 exit-code)
+            (message "promoted"))))
 
-    (define-key my-keys-minor-mode-map (kbd "C-t") 'merlin-type-enclosing)
+    (defun bt/dune-runtest ()
+      (interactive)
+      (let ((exit-code (shell-command "dune runtest")))
+        (if (= 0 exit-code)
+            (message "%s" (propertize "tests passed" 'face 'success)))))
+    ;; (message "%s" (propertize "tests passed" 'face '(:foreground "red"))))))
+
+    (define-key my-keys-minor-mode-map (kbd "M-# C-r") 'bt/dune-runtest)
+    (define-key my-keys-minor-mode-map (kbd "M-# C-p") 'bt/dune-promote)
+    (define-key my-keys-minor-mode-map (kbd "M-# C-e") 'bt/first-merlin-error)
+    (define-key my-keys-minor-mode-map (kbd "M-# C-x") 'bt/first-merlin-error)
+    (define-key my-keys-minor-mode-map (kbd "M-# C-h") 'merlin-error-prev)
+    (define-key my-keys-minor-mode-map (kbd "M-# M-!") 'merlin-error-next)
+
+    (define-key my-keys-minor-mode-map (kbd "M-# C-t") 'merlin-type-enclosing)
 
     ;; menhir/ocamllex
     (add-to-list 'auto-mode-alist '("\\.mll\\'" . tuareg-mode))
@@ -207,6 +234,7 @@
     (other-window 1))
 
   (use-package magit :defer t
+
     :config
     (defalias 'blame 'magit-blame)
 
@@ -218,6 +246,7 @@
             magit-insert-tags)))
 
   (use-package org :defer t
+    :diminish ('org-indent-mode . "")
     :init
     (defun bt/org-update-all-statistics ()
       (interactive)
@@ -252,6 +281,7 @@
 
     (defun bt/org-insert-todo ()
       (interactive)
+      (bt/eol)
       (let ((current-prefix-arg 4)) ;; emulate C-u
         (call-interactively 'org-meta-return))
       (org-todo "{ }"))
@@ -283,6 +313,24 @@
         (beginning-of-line)
         (looking-at "[[:space:]]*$")))
 
+    (setq bt/org-hide-level 1)
+    (defun bt/dec-org-hiding ()
+      (interactive)
+      (if (> bt/org-hide-level 1)
+          (setq bt/org-hide-level (- bt/org-hide-level 1)))
+      (outline-hide-sublevels bt/org-hide-level))
+
+    (defun bt/inc-org-hiding ()
+      (interactive)
+      (if (< bt/org-hide-level 20)
+          (setq bt/org-hide-level (+ bt/org-hide-level 1)))
+      (outline-hide-sublevels bt/org-hide-level))
+
+    (defun bt/reset-org-hiding ()
+      (interactive)
+      (setq bt/org-hide-level 1)
+      (outline-hide-sublevels bt/org-hide-level))
+
     (defun dwim-insert-checkbox-item ()
       (interactive)
       (if (current-line-empty-p)
@@ -290,50 +338,63 @@
         (insert-checkbox-item-on-next-line)))
 
     ;; iterm remaps C-; to M-#
-    :bind (:map org-mode-map
-                ("M-# C-j" . 'bt/org-journal-entry)
-                ("M-# D" . 'bt/org-insert-date)
-                ("M-# T" . 'bt/org-insert-datetime)
+    :bind
+    (:map modalka-mode-map
+     ("H" . 'org-backward-heading-same-level)
+     ("I" . 'org-forward-heading-same-level)
+     ("U" . 'outline-up-heading)
+     ("E" . 'outline-previous-visible-heading)
+     ("N" . 'outline-next-visible-heading)
 
-                ("M-# C-n" . 'org-meta-return)
-                ("M-# C-m" . 'bt/org-insert-todo)
+     ("|" . 'outline-hide-sublevels)
+     ("\\" . 'bt/reset-org-hiding)
+     ("[" . 'bt/dec-org-hiding)
+     ("]" . 'bt/inc-org-hiding)
 
-                ("M-# C-c" . 'bt/org-add-todo-counter)
-                ("M-# C-t" . (lambda () (interactive) (org-todo "{ }")))
-                ("M-# C-d" . (lambda () (interactive) (org-todo "{X}")))
-                ("M-# C-s" . (lambda () (interactive) (org-todo "{skip}")))
-                ("M-# C-M-h" . (lambda () (interactive) (org-todo "{waiting}")))
-                ("M-# C-f" . (lambda () (interactive) (org-todo "{followup}")))
-                ("M-# C-SPC" . (lambda () (interactive) (org-todo "")))
+     :map org-mode-map
+     ("M-# C-j" . 'bt/org-journal-entry)
+     ("M-# D" . 'bt/org-insert-date)
+     ("M-# T" . 'bt/org-insert-datetime)
 
-                ("M-# b" . 'org-backward-heading-same-level)
-                ("M-# f" . 'org-forward-heading-same-level)
-                ("M-# u" . 'outline-up-heading)
-                ("M-# p" . 'outline-previous-visible-heading)
-                ("M-# n" . 'outline-next-visible-heading)
+     ("M-# C-n" . 'org-meta-return)
+     ("M-# C-m" . 'bt/org-insert-todo)
 
-                ("M-# B" . 'org-promote-subtree)
-                ("M-# F" . 'org-demote-subtree)
-                ("M-# A" . 'org-archive-subtree)
+     ("M-# C-c" . 'bt/org-add-todo-counter)
+     ("M-# C-t" . (lambda () (interactive) (org-todo "{ }")))
+     ("M-# C-d" . (lambda () (interactive) (org-todo "{X}")))
+     ("M-# C-s" . (lambda () (interactive) (org-todo "{skip}")))
+     ("M-# C-M-h" . (lambda () (interactive) (org-todo "{waiting}")))
+     ("M-# C-f" . (lambda () (interactive) (org-todo "{followup}")))
+     ("M-# C-SPC" . (lambda () (interactive) (org-todo "")))
 
-                ("M-# C-k" . 'org-cut-subtree)
-                ("M-# C-v" . 'org-cut-subtree)
-                ("M-# M-v" . 'org-copy-subtree)
-                ("M-# C-y" . 'org-paste-subtree)
-                )
+     ("M-# h" . 'org-backward-heading-same-level)
+     ("M-# i" . 'org-forward-heading-same-level)
+     ("M-# u" . 'outline-up-heading)
+     ("M-# e" . 'outline-previous-visible-heading)
+     ("M-# n" . 'outline-next-visible-heading)
 
+     ("M-# B" . 'org-promote-subtree)
+     ("M-# F" . 'org-demote-subtree)
+     ("M-# A" . 'org-archive-subtree)
+
+     ("M-# C-k" . 'org-cut-subtree)
+     ("M-# C-v" . 'org-cut-subtree)
+     ("M-# M-v" . 'org-copy-subtree)
+     ("M-# C-y" . 'org-paste-subtree)
+     )
+
+    :hook
+    (org-mode . visual-line-mode)
 
     :config
     (setq org-todo-keywords
           '((sequence "{ }" "{waiting}" "|" "{X}" "{skip}" "{followup}")))
 
-    ;; (visual-line-mode)    ;; wrap long lines
     (setq org-startup-indented t)      ;; indent tasks and only show one star
     (setq org-catch-invisible-edits t) ;; don't allow edits to collapsed parts of a buffer
     ;; (setq org-startup-folded 'content) ;; show all headings at startup
     (setq org-enforce-todo-dependencies t) ;; can't finish a task with unfinished children
     (setq org-blank-before-new-entry nil) ;; no blank line between heading for org-metareturn
-    ;; (`auto` setting wasn't working very well)
 
     (add-to-list 'org-structure-template-alist '("r" "#+BEGIN_SRC ruby\n?\n#+END_SRC"))
     (add-to-list 'org-structure-template-alist '("o" "#+BEGIN_SRC ocaml\n?\n#+END_SRC"))
@@ -360,11 +421,6 @@
   (define-key my-keys-minor-mode-map (kbd "M-# q RET") 'delete-window)
   (define-key my-keys-minor-mode-map (kbd "M-# q a RET") 'save-buffers-kill-terminal)
   (define-key my-keys-minor-mode-map (kbd "M-# w")     'save-buffer)
-
-  (define-key my-keys-minor-mode-map (kbd "M-# r i") 'string-rectangle)
-  (define-key my-keys-minor-mode-map (kbd "M-# r r") 'string-rectangle)
-  (define-key my-keys-minor-mode-map (kbd "M-# r k") 'kill-rectangle)
-  (define-key my-keys-minor-mode-map (kbd "M-# r y") 'yank-rectangle)
 
   (define-key my-keys-minor-mode-map (kbd "M-# m s") 'kmacro-start-macro)
   (define-key my-keys-minor-mode-map (kbd "M-# m e") 'kmacro-end-macro)
@@ -420,7 +476,6 @@
     (interactive "p*")
     (increment-next-number (if arg (- arg) -1)))
 
-;; separate file for keys so it can use lexical-scoping
   (load "~/.emacs.d/modalka-keys.el")
   )
 
@@ -431,4 +486,10 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (deadgrep expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode magit jinja2-mode helm-projectile))))
+    (diminish deadgrep expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode magit jinja2-mode helm-projectile))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
