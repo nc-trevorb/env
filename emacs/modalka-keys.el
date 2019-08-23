@@ -14,6 +14,13 @@
   (defalias 'bt/qswap 'query-replace)
   (defalias 'bt/qswap-reg 'query-replace-regexp)
 
+  ;; emacs uses "up"/"down" to refer to the text in the buffer moving,
+  ;; bt/ uses direction that the cursor moves
+  (defalias 'bt/scroll-up 'scroll-down-line)
+  (defalias 'bt/scroll-down 'scroll-up-line)
+  (defalias 'bt/scroll-up-page 'scroll-down)
+  (defalias 'bt/scroll-down-page 'scroll-up)
+
   (defalias 'bt/vsplit 'split-window-right)
   (defalias 'bt/hsplit 'split-window-below)
   (defalias 'bt/fullscreen 'delete-other-windows)
@@ -96,21 +103,51 @@
   (defalias 'bt/kill-ring 'helm-show-kill-ring)
 
   (setq bt/mark-anchor (make-marker))
+  (setq bt/mark-anchor-eol (make-marker))
+
   (defun bt/start-region ()
     (interactive)
+    (setq bt/region-line nil)
     (set-marker bt/mark-anchor (point))
     (set-mark-command nil))
 
-  (defun bt/adjust-region ()
+  (defun bt/start-region-line ()
+    (interactive)
+    (bt/bol)
+    (bt/start-region)
+    (setq bt/region-line (line-number-at-pos))
+    (bt/eol)
+    (set-marker bt/mark-anchor-eol (+ 1 (point)))
+    )
+
+  (defun bt/adjust-region (anchor)
     (let* ((mark- (or (mark) 0))
-           (anchor- (or (marker-position bt/mark-anchor) 0))
-           (diff (- mark- anchor-)))
-      (if (region-active-p)
-          (if (or (= 0 diff) (= 1 diff))
-              (let ((new-mark (if (<= (point) anchor-)
-                                  (1+ anchor-)
-                                anchor-)))
-                (set-mark new-mark))))))
+           (diff (- mark- anchor)))
+      (if (or (= 0 diff) (= 1 diff))
+          (let ((new-mark (if (<= (point) anchor)
+                              (1+ anchor)
+                            anchor)))
+            (set-mark new-mark)))))
+
+  (defun bt/adjust-line-region (anchor anchor-eol)
+    (if (< (line-number-at-pos) bt/region-line) ;; above region-line
+        (progn
+          (set-mark anchor-eol)
+          (bt/bol))
+      (progn
+        (set-mark anchor)
+        (bt/eol))))
+
+
+  (defun bt/adjust-region-hook ()
+    (if (region-active-p)
+        (let ((anchor (marker-position bt/mark-anchor))
+              (anchor-eol (marker-position bt/mark-anchor-eol)))
+          (if anchor
+              (if bt/region-line
+                  (bt/adjust-line-region anchor anchor-eol)
+                (bt/adjust-region anchor))))))
+
 
   (defmacro bt/defun-insert (fn original)
     `(defun ,fn ()
@@ -198,6 +235,15 @@
 
   (defun bt/select (target)
     (cond
+     ((string= "iw" target)
+      (bt/bw-bow)
+      (bt/start-region)
+      (bt/eow))
+
+     ((string= "aw" target)
+      (bt/select "iw")
+      (bt/right))
+
      ((string= "aW" target)
       (re-search-backward whitespace)
       (bt/right)
@@ -235,10 +281,6 @@
     (interactive)
     (bt/select "il"))
 
-  (defun bt/select-string ()
-    (interactive)
-    (bt/select "il"))
-
   (defun bt/comment ()
     (interactive)
     (whole-line-or-region-comment-dwim nil))
@@ -267,6 +309,20 @@
   (defalias 'bt/kill-eol 'kill-line)
   (defalias 'bt/indent 'indent-for-tab-command)
   (defalias 'bt/go-line 'goto-line)
+
+  (setq bt/kill-map (make-sparse-keymap))
+  (define-key bt/kill-map (kbd "ip") 'bt/kill-ip)
+
+  (defun bt/kill-ip ()
+    (interactive)
+    (bt/select "ip")
+    (bt/kill))
+
+  (defun bt/new-kill ()
+    (interactive)
+    (if (region-active-p)
+        (bt/kill)
+      (set-temporary-overlay-map bt/kill-map)))
 
   (defun bt/delete ()
     (interactive)
@@ -382,22 +438,13 @@
   (defun bt/select-in-around-region (i-or-a target-key region-start-char)
     (cond
      ((string= target-key "w")
-      (er/expand-region 1)
-      (if (string= i-or-a "a")
-          (progn
-            (bt/flip-region)
-            (bt/right))))
+      (bt/select (concat i-or-a "w")))
 
      ((string= target-key "W")
       (bt/select (concat i-or-a "W")))
 
      ((string= target-key "p")
       (bt/select (concat i-or-a "p")))
-
-     ((string= target-key "s")
-      (if (string= i-or-a "a")
-          (er/mark-outside-quotes)
-        (er/mark-inside-quotes)))
 
      ((string= i-or-a "i")
       (search-backward region-start-char)
@@ -442,7 +489,7 @@
     (mapcar (apply-partially 'bt/define-in-around-key key i-or-a (cdr pair) action) (split-string (car pair) "" 'f)))
 
   (defun bt/define-prefix-action (key action)
-    (let ((region-targets '(("b()" . "(") ("B{}" . "{") ("[]" . "[") ("p" . "p") ("w" . "w") ("W" . "W") ("Ss" . " ") ("'" . "'") ("\"" . "\""))))
+    (let ((region-targets '(("b()" . "(") ("B{}" . "{") ("[]" . "[") ("p" . "p") ("w" . "w") ("W" . "W") ("S'" . "'") ("s\"" . "\""))))
       (bt/define-until-keys key action)
       (bt/define-target-keys key action)
       (mapc (apply-partially 'bt/define-in-around-targets "i" key action) region-targets)
@@ -473,8 +520,8 @@
 
    ("M-RET" . 'bt/insert-below) ("M-@" . 'bt/insert-above)
 
-   ;; ("C-x z" . 'delete-other-windows)
-   ;; ("C-x /" . 'winner-undo)
+   ("C-x z" . 'bt/noop)
+   ("C-M-z" . 'bt/fullscreen)
    ;; ("C-x \\" . 'split-window-right) ("C-x |" . 'split-window-right)
    ;; ("C-x -" . 'split-window-below) ("C-x _" . 'split-window-below)
    ;; ("C-x k" . 'delete-window)
@@ -538,7 +585,7 @@
    ("!" . 'bt/run-macro) ("@" . 'bt/noop) ("#" . 'bt/noop) ("$" . 'bt/noop) ("%" . 'bt/noop) ("^" . 'bt/noop) ("&" . 'bt/noop) ("*" . 'bt/noop) ("(" . 'bt/start-macro) (")" . 'bt/end-macro)
    ("1" . 'bt/noop) ("2" . 'bt/noop) ("3" . 'bt/noop) ("4" . 'bt/noop) ("5" . 'bt/noop) ("6" . 'bt/noop) ("7" . 'bt/noop) ("8" . 'bt/noop) ("9" . 'bt/noop) ("0" . 'bt/noop)
 
-   ("~" . 'bt/noop) ("`" . 'bt/noop)
+   ("~" . 'bt/fullscreen) ("`" . 'bt/window-undo)
    ("_" . 'bt/noop) ("-" . 'bt/hsplit)
    ("=" . 'bt/fold) ("+" . 'bt/unfold)
 
@@ -572,26 +619,25 @@
                           ("X" . 'bt/noop)
                           ("C" . 'bt/noop)
                           ("D" . 'bt/noop)
-   ("v" . 'bt/start-region) ("V" . 'bt/noop)
+   ("v" . 'bt/start-region) ("V" . 'bt/start-region-line)
 
    ("z" . 'bt/delete) ("Z" . 'bt/noop)
    ("l" . 'bt/bw-bow) ("L" . 'bt/bw-boW)
                    ("U" . 'bt/noop)
    ("y" . 'bt/bow) ("Y" . 'bt/boW)
-   (":a" . 'bt/fullscreen) (";" . 'bt/bov)
-   (":u" . 'bt/window-undo)
+   (":" . 'bt/noop) (";" . 'bt/bov)
    ("{" . 'bt/bol) ("[" . 'bt/unfold)
    ("}" . 'bt/eol) ("]" . 'bt/fold)
    ("|" . 'bt/noop) ("\\" . 'bt/vsplit)
 
-   ("h" . 'bt/left) ("H" . 'bt/noop)
-   ("n" . 'bt/down) ("N" . 'bt/eob)
-   ("e" . 'bt/up) ("E" . 'bt/bob)
-   ("i" . 'bt/right) ("I" . 'bt/noop)
+   ("h" . 'bt/left) ("H" . 'bt/scroll-up-page)
+   ("n" . 'bt/down) ("N" . 'bt/scroll-down)
+   ("e" . 'bt/up) ("E" . 'bt/scroll-up)
+   ("i" . 'bt/right) ("I" . 'bt/scroll-down-page)
    ("o" . 'bt/eow) ("O" . 'bt/eoW)
    ("'" . 'bt/comment) ("\"" . 'bt/comment-par)
 
-                        ("K" . 'bt/noop)
+   ("k" . 'bt/new-kill) ("K" . 'bt/noop)
    ("m" . 'bt/mark-set) ("M" . 'bt/mark-jump)
    ("," . 'bt/bop) ("<" . 'bt/bob)
    ("." . 'bt/eop) (">" . 'bt/eob)
@@ -623,9 +669,9 @@
   (bt/define-prefix-action "c" 'bt/copy)
   (bt/define-prefix-action "d" 'bt/dupe)
 
-  (bt/define-prefix-action "k" 'bt/kill)
+  ;; (bt/define-prefix-action "k" 'bt/kill)
   (bt/define-prefix-action "u" 'bt/update)
   (bt/define-prefix-action " " 'bt/noop) ;; region stays activated so this is like "select"
 
-  (add-hook 'post-command-hook 'bt/adjust-region)
+  (add-hook 'post-command-hook 'bt/adjust-region-hook)
   )
