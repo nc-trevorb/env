@@ -208,6 +208,8 @@ Also bind `class' to ((class color) (min-colors 89))."
    `(org-warning ((t (:weight bold :foreground ,brightred))))
    `(org-code ((t (:background ,gray :foreground ,yellow))))
 
+   `(org-ellipsis ((t (:foreground ,lightgray))))
+
    `(tuareg-font-lock-governing-face ((t (:foreground ,blue))))
    `(tuareg-font-lock-operator-face ((t (:foreground ,blue))))
 

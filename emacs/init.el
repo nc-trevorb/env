@@ -3,6 +3,7 @@
  ;;; packages
   (require 'package)
   (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
   (package-initialize)
 
  ;;; custom theme
@@ -60,7 +61,7 @@
          "%b:%l " ;; buffer name : line number
 
          '(:eval (when (buffer-modified-p)
-                   (propertize " (modified)"
+                   (propertize " [+]"
                                'face 'font-lock-warning-face)))
 
          " [%o] " ;; mode-name
@@ -98,6 +99,21 @@
                    (display-buffer-in-side-window)
                    (inhibit-same-window . t)
                    (window-height . 0.4))))
+
+  (use-package helm-swoop
+    ;; :diminish (helm-mode . "")
+    ;; :config (helm-mode 1)
+    :ensure t ;; :pin melpa
+    :bind
+    (:map helm-swoop-map
+     ("M-e" . 'helm-previous-line)
+     ("M-n" . 'helm-next-line)
+     ("M-m" . 'helm-next-line)
+     )
+
+    :config
+    (setq helm-swoop-split-direction 'split-window-horizontally)
+    )
 
   (use-package linum
     :config
@@ -279,11 +295,21 @@
       (beginning-of-line)
       (search-forward " "))
 
-    (defun bt/org-insert-todo ()
+    (defun bt/org-insert-star-heading ()
       (interactive)
       (bt/eol)
-      (let ((current-prefix-arg 4)) ;; emulate C-u
-        (call-interactively 'org-meta-return))
+      (org-insert-heading-after-current)
+      (bt/add))
+
+    (defun bt/org-insert-heading ()
+      (interactive)
+      (bt/eol)
+      (org-meta-return)
+      (bt/add))
+
+    (defun bt/org-insert-todo ()
+      (interactive)
+      (bt/org-insert-star-heading)
       (org-todo "{ }"))
 
     (defun bt/org-add-todo-counter ()
@@ -322,7 +348,7 @@
 
     (defun bt/inc-org-hiding ()
       (interactive)
-      (if (< bt/org-hide-level 20)
+      (if (< bt/org-hide-level 12)
           (setq bt/org-hide-level (+ bt/org-hide-level 1)))
       (outline-hide-sublevels bt/org-hide-level))
 
@@ -345,42 +371,43 @@
      ("U" . 'outline-up-heading)
      ("E" . 'outline-previous-visible-heading)
      ("N" . 'outline-next-visible-heading)
+     ("," . 'outline-previous-visible-heading)
+     ("." . 'outline-next-visible-heading)
 
-     ("|" . 'outline-hide-sublevels)
+     ;; ("|" . 'outline-hide-sublevels)
      ("\\" . 'bt/reset-org-hiding)
      ("[" . 'bt/dec-org-hiding)
      ("]" . 'bt/inc-org-hiding)
 
      :map org-mode-map
-     ("M-# C-j" . 'bt/org-journal-entry)
+     ;; ("M-# C-j" . 'bt/org-journal-entry)
      ("M-# D" . 'bt/org-insert-date)
      ("M-# T" . 'bt/org-insert-datetime)
 
-     ("M-# C-n" . 'org-meta-return)
-     ("M-# C-m" . 'bt/org-insert-todo)
+     ("M-# C-n C-a" . 'bt/org-insert-heading)
+     ("M-# C-n C-s" . 'bt/org-insert-star-heading)
+     ("M-# C-n C-t" . 'bt/org-insert-todo)
 
      ("M-# C-c" . 'bt/org-add-todo-counter)
      ("M-# C-t" . (lambda () (interactive) (org-todo "{ }")))
      ("M-# C-d" . (lambda () (interactive) (org-todo "{X}")))
-     ("M-# C-s" . (lambda () (interactive) (org-todo "{skip}")))
-     ("M-# C-M-h" . (lambda () (interactive) (org-todo "{waiting}")))
+     ;; ("M-# C-s" . (lambda () (interactive) (org-todo "{skip}")))
+     ("M-# C-w" . (lambda () (interactive) (org-todo "{waiting}")))
      ("M-# C-f" . (lambda () (interactive) (org-todo "{followup}")))
      ("M-# C-SPC" . (lambda () (interactive) (org-todo "")))
 
-     ("M-# h" . 'org-backward-heading-same-level)
-     ("M-# i" . 'org-forward-heading-same-level)
-     ("M-# u" . 'outline-up-heading)
-     ("M-# e" . 'outline-previous-visible-heading)
-     ("M-# n" . 'outline-next-visible-heading)
+     ;; ("M-# h" . 'org-backward-heading-same-level)
+     ;; ("M-# i" . 'org-forward-heading-same-level)
+     ;; ("M-# u" . 'outline-up-heading)
+     ;; ("M-# e" . 'outline-previous-visible-heading)
+     ;; ("M-# n" . 'outline-next-visible-heading)
 
      ("M-# B" . 'org-promote-subtree)
      ("M-# F" . 'org-demote-subtree)
-     ("M-# A" . 'org-archive-subtree)
 
-     ("M-# C-k" . 'org-cut-subtree)
-     ("M-# C-v" . 'org-cut-subtree)
-     ("M-# M-v" . 'org-copy-subtree)
-     ("M-# C-y" . 'org-paste-subtree)
+     ("M-# M-# C-w" . 'org-cut-subtree)
+     ("M-# M-# C-c" . 'org-copy-subtree)
+     ("M-# M-# C-p" . 'org-paste-subtree)
      )
 
     :hook
@@ -395,6 +422,7 @@
     ;; (setq org-startup-folded 'content) ;; show all headings at startup
     (setq org-enforce-todo-dependencies t) ;; can't finish a task with unfinished children
     (setq org-blank-before-new-entry nil) ;; no blank line between heading for org-metareturn
+    (setq org-ellipsis " [...]")
 
     (add-to-list 'org-structure-template-alist '("r" "#+BEGIN_SRC ruby\n?\n#+END_SRC"))
     (add-to-list 'org-structure-template-alist '("o" "#+BEGIN_SRC ocaml\n?\n#+END_SRC"))
@@ -420,11 +448,7 @@
 
   (define-key my-keys-minor-mode-map (kbd "M-# q RET") 'delete-window)
   (define-key my-keys-minor-mode-map (kbd "M-# q a RET") 'save-buffers-kill-terminal)
-  (define-key my-keys-minor-mode-map (kbd "M-# w")     'save-buffer)
-
-  (define-key my-keys-minor-mode-map (kbd "M-# m s") 'kmacro-start-macro)
-  (define-key my-keys-minor-mode-map (kbd "M-# m e") 'kmacro-end-macro)
-  (define-key my-keys-minor-mode-map (kbd "M-# x") 'kmacro-end-and-call-macro)
+  ;; (define-key my-keys-minor-mode-map (kbd "M-# w")     'save-buffer)
 
   (define-key my-keys-minor-mode-map (kbd "M-# v") 'eval-expression)
   (define-key my-keys-minor-mode-map (kbd "M-# )") 'eval-last-sexp)
