@@ -30,7 +30,7 @@
     ("magenta" . "magenta")
     ("brightmagenta" . "brightmagenta")
 
-    ("darkgray" . "color-235")
+    ("darkgray" . "color-234")
     ("gray" . "color-237")
     ("lightgray" . "color-240")
 
@@ -62,6 +62,9 @@ Also bind `class' to ((class color) (min-colors 89))."
    `(success ((t (:foreground ,green :weight bold))))
    `(warning ((t (:foreground ,red :weight bold))))
    `(error ((t (:foreground "color-124" :weight bold))))
+
+   `(whitespace-newline ((t (:foreground ,black :background ,black))))
+   `(whitespace-trailing ((t (:foreground ,darkgray :background ,darkgray))))
 
    `(Mode-line ((t (:background ,green :foreground ,brightblack ))))
    ;; `(mode-line-inactive ((t (:background ,gray :foreground ,white ))))

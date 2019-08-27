@@ -5,6 +5,7 @@
   (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
   (package-initialize)
+  (set-display-table-slot standard-display-table 'vertical-border (make-glyph-code ?║))
 
  ;;; custom theme
   (add-to-list 'custom-theme-load-path "~/.emacs.d/bttheme/")
@@ -45,7 +46,8 @@
   (winner-mode 1)                                         ;; undo/redo split layout changes
   (setq echo-keystrokes 0.001)                            ;; like vim's showcmd
   (setq require-final-newline nil)
-  (add-hook 'before-save-hook 'delete-trailing-whitespace)
+  (setq-default show-trailing-whitespace t)
+  ;; (add-hook 'before-save-hook 'delete-trailing-whitespace)
   (global-auto-revert-mode)
   (setq set-mark-command-repeat-pop t)
   (setq register-preview-delay 0)
@@ -114,6 +116,17 @@
     :config
     (setq helm-swoop-split-direction 'split-window-horizontally)
     )
+
+  (use-package whitespace
+    ;; http://ergoemacs.org/emacs/whitespace-mode.html
+    :config
+    (setq whitespace-style (quote (face trailing newline tab-mark newline-mark)))
+
+    (setq whitespace-display-mappings
+          '((newline-mark 10 [182 10]) ; LINE FEED,
+            (tab-mark 9 [8677 9] [92 9]) ; tab
+            ))
+    (global-whitespace-mode))
 
   (use-package linum
     :config
@@ -384,9 +397,9 @@
      ("M-# D" . 'bt/org-insert-date)
      ("M-# T" . 'bt/org-insert-datetime)
 
-     ("M-# C-n C-a" . 'bt/org-insert-heading)
-     ("M-# C-n C-s" . 'bt/org-insert-star-heading)
-     ("M-# C-n C-t" . 'bt/org-insert-todo)
+     ("M-# C-n" . 'bt/org-insert-heading)
+     ("M-# C-a C-n" . 'bt/org-insert-star-heading)
+     ("M-# C-a C-t" . 'bt/org-insert-todo)
 
      ("M-# C-c" . 'bt/org-add-todo-counter)
      ("M-# C-t" . (lambda () (interactive) (org-todo "{ }")))

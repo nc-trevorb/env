@@ -15,9 +15,7 @@
   :config
   (bt/define-prefix-action "c" 'bt/copy)
   (bt/define-prefix-action "d" 'bt/dupe)
-
   (bt/define-prefix-action "t" 'bt/trade)
-
   (bt/define-prefix-action "w" 'bt/wipe)
   ;; (bt/define-prefix-action " " 'bt/noop) ;; selection stays activated so this is like "select"
   )
@@ -38,14 +36,53 @@
   (defalias 'bt/scroll-up-page 'scroll-down)
   (defalias 'bt/scroll-down-page 'scroll-up)
 
-  (defalias 'bt/split-side 'split-window-right)
-  (defalias 'bt/split-below 'split-window-below)
+  (defalias 'bt/switch-window-left 'windmove-left)
+  (defalias 'bt/switch-window-down 'windmove-down)
+  (defalias 'bt/switch-window-up 'windmove-up)
+  (defalias 'bt/switch-window-right 'windmove-right)
+
+  (defalias 'bt/split-left 'split-window-right)
+  (defalias 'bt/split-up 'split-window-below)
+
+  (defun bt/split-right ()
+    (interactive)
+    (bt/split-left)
+    (bt/switch-window-right))
+
+  (defun bt/split-down ()
+    (interactive)
+    (bt/split-up)
+    (bt/switch-window-down))
+
+  (defun bt/access-file-left ()
+    (interactive)
+    (bt/split-left)
+    (bt/access-file))
+
+  (defun bt/access-file-right ()
+    (interactive)
+    (bt/split-right)
+    (bt/access-file))
+
+  (defun bt/access-file-up ()
+    (interactive)
+    (bt/split-up)
+    (bt/access-file))
+
+  (defun bt/access-file-down ()
+    (interactive)
+    (bt/split-down)
+    (bt/access-file))
+
+  (defalias 'bt/access-file 'helm-projectile-find-file)
+  (defalias 'bt/buffer-list 'ibuffer)
+  (defalias 'bt/go-to-buffer 'switch-to-buffer)
+  (defalias 'bt/dired 'dired-jump)
+  ;; (defalias 'bt/locate-file 'find-file)
+  
   (defalias 'bt/fullscreen 'delete-other-windows)
   (defalias 'bt/close-window 'delete-window)
   (defalias 'bt/window-revert 'winner-undo)
-  (defalias 'bt/open-file 'helm-projectile-find-file)
-  (defalias 'bt/locate-file 'find-file)
-  (defalias 'bt/dired 'dired-jump)
 
   (defalias 'bt/start-macro 'kmacro-start-macro)
   (defalias 'bt/end-macro 'kmacro-end-macro)
@@ -106,6 +143,11 @@
   (defalias 'bt/query 'query-replace-regexp)
   (defalias 'bt/query-exact 'query-replace)
 
+  (defun bt/query ()
+    (interactive)
+    (let ((scroll-conservatively 0))
+      (call-interactively 'query-replace-regexp)))
+
   (defun bt/cursor-to-middle ()
     (interactive)
     (recenter-top-bottom))
@@ -146,6 +188,16 @@
   (defun bt/save ()
     (interactive)
     (if (bt/editable) (save-buffer) (message "not saving...")))
+
+  (defun bt/full-save ()
+    (interactive)
+    (bt/whitespace)
+    (bt/save))
+
+  (defun bt/whitespace ()
+    (interactive)
+    (delete-trailing-whitespace)
+    (bt/save))
 
   (defun bt/select ()
     (interactive)
@@ -322,6 +374,7 @@
     (set-selective-display 0))
 
   (defun bt/old-select (target)
+    (interactive)
     (cond
      ((string= "iw" target)
       (bt/right)
@@ -398,6 +451,11 @@
   (defalias 'bt/wipe-eol 'kill-line)
   (defalias 'bt/indent 'indent-for-tab-command)
   (defalias 'bt/go-line 'goto-line)
+
+  (defun bt/indent-paragraph ()
+    (interactive)
+    (bt/old-select "ip")
+    (bt/indent))
 
   (defun bt/wipe-eol ()
     (interactive)
@@ -480,20 +538,6 @@
     (bt/indent)
     (bt/add))
 
-  ;; (bt/defun-add-fn bt/add-below
-  ;;   (let ((run (lambda ()
-  ;;                (bt/eol)
-  ;;                (newline-and-indent))))
-  ;;     (if current-prefix-arg
-
-  ;;         (save-excursion (funcall run))
-  ;;       (funcall run))))
-
-  ;; (defun bt/add-above ()
-  ;;   (interactive)
-  ;;   (bt/up)
-  ;;   (bt/add-below))
-
   (defun bt/paste-line ()
     (interactive)
     (bt/bol)
@@ -508,31 +552,18 @@
 
 
   ;; directional keys
-  (defun bt/select-target (target-key)
-    (cond
-     ((or (string= target-key " ") (string= target-key "r"))
-      (bt/adjust-selection-for-edit))
-
-     ((string= target-key "ol")
-      (bt/old-select "ol"))
-
-     ((string= target-key "il")
-      (bt/old-select-line))))
-
-  (defun bt/define-target-key (input-key target-key action)
-    (let ((key-seq (concat input-key target-key)))
+  (defun bt/define-target-key (i-or-o input-key action target-key)
+    (let* ((target (concat i-or-o target-key))
+           (key-seq (concat input-key target)))
       (define-key modalka-mode-map key-seq (lambda () (interactive)
                                              (save-excursion
-                                               (bt/select-target target-key)
+                                               (bt/old-select target)
                                                (funcall action))))))
 
-  (defun bt/define-target-keys (key action)
-    (bt/define-target-key key " " action)
-    (bt/define-target-key key "r" action)
-    (bt/define-target-key key "ol" action)
-    (bt/define-target-key key "il" action))
+  (defun bt/define-target-keys (i-or-o key action targets)
+    (mapcar (apply-partially 'bt/define-target-key i-or-o key action) targets))
 
-  (defun bt/select-in-around (i-or-o target-key selection-start-char)
+  (defun bt/select-inner-outer (i-or-o target-key selection-start-char)
     (cond
      ((string= target-key "w")
       (bt/old-select (concat i-or-o "w")))
@@ -555,12 +586,12 @@
       (search-backward selection-start-char)
       (er/expand-region 1))))
 
-  (defun bt/define-in-around-key (input-key i-or-o selection-start-char action target-key)
+  (defun bt/define-delimited-key (input-key i-or-o selection-start-char action target-key)
     (let* ((key-seq (concat input-key i-or-o target-key))
            (run-cmd
             (lambda () (interactive)
-               (bt/select-in-around i-or-o target-key selection-start-char)
-               (funcall action)))
+              (bt/select-inner-outer i-or-o target-key selection-start-char)
+              (funcall action)))
            (fn (lambda ()
                  (interactive)
                  (cond
@@ -582,14 +613,21 @@
     (bt/define-until-key key "U" action 'bt/past)
     (bt/define-until-key key "Z" action 'bt/bw-past))
 
-  (defun bt/define-in-around-targets (i-or-o key action pair)
-    (mapcar (apply-partially 'bt/define-in-around-key key i-or-o (cdr pair) action) (split-string (car pair) "" 'f)))
+  (defun bt/chars (string)
+    (split-string string "" 'f))
+
+  (defun bt/define-delimited-targets (i-or-o key action pair)
+    (mapcar (apply-partially 'bt/define-delimited-key key i-or-o (cdr pair) action) (bt/chars (car pair))))
 
   (defun bt/define-prefix-action (key action)
-    (let ((selection-targets '(("b()" . "(") ("B{}" . "{") ("[]" . "[") ("p" . "p") ("w" . "w") ("W" . "W") ("S'" . "'") ("s\"" . "\""))))
-      (bt/define-target-keys key action)
-      (mapc (apply-partially 'bt/define-in-around-targets "i" key action) selection-targets)
-      (mapc (apply-partially 'bt/define-in-around-targets "o" key action) selection-targets)))
+    (let ((delimited-targets '(("b()" . "(") ("B{}" . "{") ("[]" . "[") ("S'" . "'") ("s\"" . "\"")))
+          (targets (bt/chars "lpwW")))
+      (bt/define-until-keys key action)
+      (bt/define-target-keys "i" key action targets)
+      (bt/define-target-keys "o" key action targets)
+      ;; (mapc (apply-partially 'bt/define-delimited-targets "i" key action) delimited-targets)
+      ;; (mapc (apply-partially 'bt/define-delimited-targets "o" key action) delimited-targets))
+    ))
 
   ;; remapped in iterm
   ;; ("actual key pressed" . "what emacs sees")
@@ -614,28 +652,43 @@
    ("M-SPC" . 'bt/select) ("C-@" . 'helm-M-x)
    ("M-g M-g" . 'bt/git)
 
+   ("M-# TAB" . 'bt/indent-paragraph)
+
    ("M-RET" . 'bt/blank-below) ("M-*" . 'bt/blank-above) ("M-@" . 'bt/add-above)
    ("M-7" . 'bt/match-again) ("M-8" . 'bt/match-symbol)
 
    ("C-x z" . 'bt/noop) ("C-q" . 'quit-window)
-   ("C-M-o" . 'bt/open-file)
-   ("C-M-l" . 'bt/locate-file)
-   ("C-M-q" . 'bt/close-window)
-   ("C-M-f" . 'bt/fullscreen)
    ("C-M-r" . 'bt/window-revert)
-   ("C-M-b" . 'bt/split-below)
-   ("C-M-s" . 'bt/split-side)
+   ("C-M-q" . 'bt/close-window)
+
+   ("C-M-w" . 'bt/whole-window)
+   ("C-M-f" . 'bt/full-save)
+   ("C-M-b" . 'bt/buffer-list)
+   ("C-M-g" . 'bt/go-to-buffer)
+
    ;; others:
    ;;; switch to any open buffer
    ;;; switch to any open buffer of current mode
    ;;; switch to any project file of current mode
    ;;; ibuffer
 
+   ;; ("C-M-w" . 'bt/whitespace)
 
-   ("C-M-h" . 'windmove-left)
-   ("C-M-n" . 'windmove-down)
-   ("C-M-e" . 'windmove-up)
-   ("C-M-i" . 'windmove-right)
+   ("C-M-a C-M-t" . 'bt/access-file-this)
+   ("C-M-a C-M-h" . 'bt/access-file-left)
+   ("C-M-a C-M-n" . 'bt/access-file-down)
+   ("C-M-a C-M-e" . 'bt/access-file-up)
+   ("C-M-a C-M-i" . 'bt/access-file-right)
+
+   ("C-M-s C-M-h" . 'bt/split-left)
+   ("C-M-s C-M-n" . 'bt/split-down)
+   ("C-M-s C-M-e" . 'bt/split-up)
+   ("C-M-s C-M-i" . 'bt/split-right)
+
+   ("C-M-h" . 'bt/switch-window-left)
+   ("C-M-n" . 'bt/switch-window-down)
+   ("C-M-e" . 'bt/switch-window-up)
+   ("C-M-i" . 'bt/switch-window-right)
 
    ("M-q" . 'bt/query) ("M-Q" . 'bt/query-exact)
    ("M-w" . 'bt/wipe) ("C-w" . 'bt/wipe-eol)
@@ -658,7 +711,7 @@
    ("M-l" . 'bt/bw-bow) ("C-l" . 'bt/noop)
    ("M-u" . 'bt/until) ("C-u" . 'bt/noop)
    ("M-y" . 'bt/bow) ("C-y" . 'bt/noop)
-   ("M-;" . 'bt/mark-set) ("M-:" . 'bt/mark-jump)
+   ("M-;" . 'bt/autocomplete) ("M-:" . 'bt/mark-jump)
    ("M-&" . 'bt/bol)
    ("M-]" . 'bt/eol) ("C-]" . 'bt/eol)
 
@@ -725,10 +778,10 @@
    ("l" . 'bt/bw-bow) ("L" . 'bt/bw-boW)
    ("u" . 'bt/until) ("U" . 'bt/past)
    ("y" . 'bt/bow) ("Y" . 'bt/boW)
-   (":" . 'bt/mark-set) (";" . 'bt/mark-jump)
-   ("{" . 'bt/bol) ("[" . 'bt/cursor-to-bottom)
-   ("}" . 'bt/eol) ("]" . 'bt/cursor-to-top)
-                   ("\\" .'bt/cursor-to-middle)
+   (":" . 'bt/autocomplete) (";" . 'bt/noop)
+   ("{" . 'bt/bol) ("[" . 'bt/cursor-to-top)
+   ("}" . 'bt/eol) ("]" . 'bt/cursor-to-middle)
+                   ("\\" .'bt/cursor-to-bottom)
    ("|t" . 'bt/rect-trade)
    ("|w" . 'bt/rect-wipe)
    ("|p" . 'bt/rect-paste)
