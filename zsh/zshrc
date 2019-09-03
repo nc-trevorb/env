@@ -72,13 +72,35 @@ setopt HIST_REDUCE_BLANKS
 ### Settings ###
 unsetopt correct_all
 bindkey -e                                       # use emacs key bindings
-bindkey '^r' history-incremental-search-backward # make Control-r work
+# bindkey '^r' history-incremental-search-backward # make Control-r work
 bindkey '^[[Z' reverse-menu-complete             # shift-tab to cycle backwards
 bindkey "^[[3~" delete-char                      # make delete key work
 bindkey "^[3;5~" delete-char                     # make delete key work
 bindkey "^U" backward-kill-line                  # C-u acts like bash
 autoload -U select-word-style
 select-word-style bash
+
+bindkey '^w' kill-line
+bindkey '^b' backward-kill-word
+bindkey '^f' kill-word
+bindkey '^p' yank
+bindkey '^r' undo
+bindkey '^v' delete-char-or-list
+
+bindkey '^[m' history-incremental-search-backward
+bindkey '^[M' history-incremental-search-forward
+bindkey '^[h' backward-char
+bindkey '^[n' down-line-or-history
+bindkey '^[e' up-line-or-history
+bindkey '^[i' forward-char
+bindkey '^[l' backward-word
+bindkey '^[y' forward-word
+bindkey '^[o' forward-word
+bindkey '^[(' end-of-line # iterm remaps M-i -> M-(
+bindkey '^[z' beginning-of-line
+bindkey '^[w' kill-line
+bindkey "^['" clear-screen
+
 
 setopt LOCAL_OPTIONS # allow functions to have local options
 setopt LOCAL_TRAPS   # allow functions to have local traps

@@ -88,6 +88,12 @@
 
   (use-package helm-config
     :diminish (helm-mode . "")
+    :bind
+    (:map helm-map
+     ("M-e" . 'helm-previous-line)
+     ("M-n" . 'helm-next-line)
+     ("M-g" . 'helm-keyboard-quit)
+     )
     :config (helm-mode 1))
 
   (use-package helm-projectile
@@ -103,14 +109,10 @@
                    (window-height . 0.4))))
 
   (use-package helm-swoop
-    ;; :diminish (helm-mode . "")
-    ;; :config (helm-mode 1)
     :ensure t ;; :pin melpa
     :bind
     (:map helm-swoop-map
-     ("M-e" . 'helm-previous-line)
-     ("M-n" . 'helm-next-line)
-     ("M-m" . 'helm-next-line)
+     ("M-o" . 'helm-swoop-yank-thing-at-point)
      )
 
     :config
@@ -203,12 +205,6 @@
             "\\.ru$" "Guardfile$" "Vagrantfile$")))
 
   (use-package tuareg :defer t
-    :bind
-    (:map my-keys-minor-mode-map
-          ("C-e" . 'merlin-error-prev)
-          ("C-n" . 'merlin-error-next)
-          ("C-t" . 'merlin-type-enclosing))
-
     :config
     ;; merlin setup w/opam
     (let ((opam-share (ignore-errors (car (process-lines "opam" "config" "var" "share")))))
@@ -242,8 +238,8 @@
             (message "%s" (propertize "tests passed" 'face 'success)))))
     ;; (message "%s" (propertize "tests passed" 'face '(:foreground "red"))))))
 
-    (define-key my-keys-minor-mode-map (kbd "M-# C-r") 'bt/dune-runtest)
-    (define-key my-keys-minor-mode-map (kbd "M-# C-p") 'bt/dune-promote)
+    ;; (define-key my-keys-minor-mode-map (kbd "M-# C-r") 'bt/dune-runtest)
+    ;; (define-key my-keys-minor-mode-map (kbd "M-# C-p") 'bt/dune-promote)
     (define-key my-keys-minor-mode-map (kbd "M-# C-e") 'bt/first-merlin-error)
     (define-key my-keys-minor-mode-map (kbd "M-# C-x") 'bt/first-merlin-error)
     (define-key my-keys-minor-mode-map (kbd "M-# C-h") 'merlin-error-prev)
