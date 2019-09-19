@@ -90,16 +90,22 @@
     :diminish (helm-mode . "")
     :bind
     (:map helm-map
-     ("M-e" . 'helm-previous-line)
-     ("M-n" . 'helm-next-line)
-     ("M-g" . 'helm-keyboard-quit)
-     )
+          ("M-e" . 'helm-previous-line)
+          ("M-n" . 'helm-next-line)
+          ("M-g" . 'helm-keyboard-quit))
+
     :config (helm-mode 1))
 
+  ;; message isn't showing up but at least it stops eshell from opening
+  (defun eshell () (interactive) (message "no eshell!"))
   (use-package helm-projectile
+    :bind
+    (:map helm-projectile-find-file-map
+          ("M-e" . 'helm-previous-line)
+          )
+
     :config
     (helm-projectile-on)
-
     ;; make helm always open in split window at the bottom
     (setq helm-split-window-in-side-p t)
     (add-to-list 'display-buffer-alist
@@ -128,11 +134,15 @@
           '((newline-mark 10 [182 10]) ; LINE FEED,
             (tab-mark 9 [8677 9] [92 9]) ; tab
             ))
-    (global-whitespace-mode))
+    (global-whitespace-mode)
+
+    ;; not working with global-whitespace-mode, not sure why
+    (set-display-table-slot standard-display-table 'vertical-border (make-glyph-code ?║))
+    )
 
   (use-package linum
     :config
-    (set-display-table-slot standard-display-table 'vertical-border (make-glyph-code ?║))
+    ;; (set-display-table-slot standard-display-table 'vertical-border (make-glyph-code ?║))
     (setq linum-format "%4d│")
     (add-hook 'prog-mode-hook #'linum-mode))
 
@@ -238,14 +248,11 @@
             (message "%s" (propertize "tests passed" 'face 'success)))))
     ;; (message "%s" (propertize "tests passed" 'face '(:foreground "red"))))))
 
-    ;; (define-key my-keys-minor-mode-map (kbd "M-# C-r") 'bt/dune-runtest)
-    ;; (define-key my-keys-minor-mode-map (kbd "M-# C-p") 'bt/dune-promote)
-    (define-key my-keys-minor-mode-map (kbd "M-# C-e") 'bt/first-merlin-error)
-    (define-key my-keys-minor-mode-map (kbd "M-# C-x") 'bt/first-merlin-error)
-    (define-key my-keys-minor-mode-map (kbd "M-# C-h") 'merlin-error-prev)
-    (define-key my-keys-minor-mode-map (kbd "M-# M-!") 'merlin-error-next)
+    (define-key my-keys-minor-mode-map (kbd "M-A") 'bt/first-merlin-error)
+    (define-key my-keys-minor-mode-map (kbd "M-B") 'merlin-error-prev)
+    (define-key my-keys-minor-mode-map (kbd "M-F") 'merlin-error-next)
 
-    (define-key my-keys-minor-mode-map (kbd "M-# C-t") 'merlin-type-enclosing)
+    (define-key my-keys-minor-mode-map (kbd "M-T") 'merlin-type-enclosing)
 
     ;; menhir/ocamllex
     (add-to-list 'auto-mode-alist '("\\.mll\\'" . tuareg-mode))
@@ -258,11 +265,20 @@
     (magit-process-buffer)
     (other-window 1))
 
+  ;; defer to save .5s at startup, calling bt/git will load magit
   (use-package magit :defer t
+    :bind
+    (:map my-keys-minor-mode-map
+     ("M-# C-c" . 'with-editor-finish)
+     ("M-# C-q" . 'with-editor-cancel)
+
+     :map magit-mode-map
+     ("e" . 'magit-section-backward)
+     ("n" . 'magit-section-forward))
 
     :config
     (defalias 'blame 'magit-blame)
-
+    (magit-auto-revert-mode)
     (advice-add 'magit-status :before #'delete-other-windows)
     (setq magit-refs-sections-hook
           '(magit-insert-error-header
@@ -304,13 +320,13 @@
       (beginning-of-line)
       (search-forward " "))
 
-    (defun bt/org-insert-star-heading ()
+    (defun bt/org-insert-heading ()
       (interactive)
       (bt/eol)
       (org-insert-heading-after-current)
       (bt/add))
 
-    (defun bt/org-insert-heading ()
+    (defun bt/org-insert-list-elt ()
       (interactive)
       (bt/eol)
       (org-meta-return)
@@ -318,7 +334,7 @@
 
     (defun bt/org-insert-todo ()
       (interactive)
-      (bt/org-insert-star-heading)
+      (bt/org-insert-heading)
       (org-todo "{ }"))
 
     (defun bt/org-add-todo-counter ()
@@ -332,16 +348,6 @@
     (defun bt/org-journaling-on ()
       (interactive)
       (define-key my-keys-minor-mode-map (kbd "M-RET") 'bt/org-journal-entry))
-
-    (defun insert-checkbox-item-on-next-line ()
-      (interactive)
-      (end-of-line)
-      (insert "\n - [ ] "))
-
-    (defun insert-checkbox-item ()
-      (interactive)
-      (beginning-of-line)
-      (insert " - [ ] "))
 
     (defun current-line-empty-p ()
       (save-excursion
@@ -366,12 +372,6 @@
       (setq bt/org-hide-level 1)
       (outline-hide-sublevels bt/org-hide-level))
 
-    (defun dwim-insert-checkbox-item ()
-      (interactive)
-      (if (current-line-empty-p)
-          (insert-checkbox-item)
-        (insert-checkbox-item-on-next-line)))
-
     ;; iterm remaps C-; to M-#
     :bind
     (:map modalka-mode-map
@@ -383,36 +383,32 @@
      ("," . 'outline-previous-visible-heading)
      ("." . 'outline-next-visible-heading)
 
+     ("k" . 'bt/org-beginning-of-line)
+
      ;; ("|" . 'outline-hide-sublevels)
-     ("\\" . 'bt/reset-org-hiding)
-     ("[" . 'bt/dec-org-hiding)
-     ("]" . 'bt/inc-org-hiding)
+     ;; ("\\" . 'bt/reset-org-hiding)
+     ;; ("[" . 'bt/dec-org-hiding)
+     ;; ("]" . 'bt/inc-org-hiding)
 
      :map org-mode-map
      ;; ("M-# C-j" . 'bt/org-journal-entry)
      ("M-# D" . 'bt/org-insert-date)
      ("M-# T" . 'bt/org-insert-datetime)
 
-     ("M-# C-n" . 'bt/org-insert-heading)
-     ("M-# C-a C-n" . 'bt/org-insert-star-heading)
-     ("M-# C-a C-t" . 'bt/org-insert-todo)
+     ("M-# C-n" . 'bt/org-insert-list-elt)
+     ("M-# C-h" . 'bt/org-insert-heading)
+     ("M-# C-m" . 'bt/org-insert-todo)
 
      ("M-# C-c" . 'bt/org-add-todo-counter)
      ("M-# C-t" . (lambda () (interactive) (org-todo "{ }")))
      ("M-# C-d" . (lambda () (interactive) (org-todo "{X}")))
-     ;; ("M-# C-s" . (lambda () (interactive) (org-todo "{skip}")))
-     ("M-# C-w" . (lambda () (interactive) (org-todo "{waiting}")))
+     ("M-# C-s" . (lambda () (interactive) (org-todo "{skip}")))
+     ("M-# C-b" . (lambda () (interactive) (org-todo "{blocked}")))
      ("M-# C-f" . (lambda () (interactive) (org-todo "{followup}")))
      ("M-# C-SPC" . (lambda () (interactive) (org-todo "")))
 
-     ;; ("M-# h" . 'org-backward-heading-same-level)
-     ;; ("M-# i" . 'org-forward-heading-same-level)
-     ;; ("M-# u" . 'outline-up-heading)
-     ;; ("M-# e" . 'outline-previous-visible-heading)
-     ;; ("M-# n" . 'outline-next-visible-heading)
-
-     ("M-# B" . 'org-promote-subtree)
-     ("M-# F" . 'org-demote-subtree)
+     ("M-# C-l" . 'org-promote-subtree)
+     ("M-# C-y" . 'org-demote-subtree)
 
      ("M-# M-# C-w" . 'org-cut-subtree)
      ("M-# M-# C-c" . 'org-copy-subtree)
@@ -424,7 +420,7 @@
 
     :config
     (setq org-todo-keywords
-          '((sequence "{ }" "{waiting}" "|" "{X}" "{skip}" "{followup}")))
+          '((sequence "{ }" "{blocked}" "|" "{X}" "{skip}" "{followup}")))
 
     (setq org-startup-indented t)      ;; indent tasks and only show one star
     (setq org-catch-invisible-edits t) ;; don't allow edits to collapsed parts of a buffer
@@ -432,6 +428,7 @@
     (setq org-enforce-todo-dependencies t) ;; can't finish a task with unfinished children
     (setq org-blank-before-new-entry nil) ;; no blank line between heading for org-metareturn
     (setq org-ellipsis " [...]")
+    (setq org-archive-location "~/org/archive.org::* From %s")
 
     (add-to-list 'org-structure-template-alist '("r" "#+BEGIN_SRC ruby\n?\n#+END_SRC"))
     (add-to-list 'org-structure-template-alist '("o" "#+BEGIN_SRC ocaml\n?\n#+END_SRC"))
@@ -462,13 +459,11 @@
   (define-key my-keys-minor-mode-map (kbd "M-# v") 'eval-expression)
   (define-key my-keys-minor-mode-map (kbd "M-# )") 'eval-last-sexp)
 
-  (define-key my-keys-minor-mode-map (kbd "M-# e s") 'switch-to-buffer)
-  (define-key my-keys-minor-mode-map (kbd "M-# e i") 'ibuffer)
-  (define-key my-keys-minor-mode-map (kbd "M-# e SPC") 'helm-projectile-find-file)
-  (define-key my-keys-minor-mode-map (kbd "M-# e RET") (lambda () (interactive) (revert-buffer :ignore-auto :noconfirm)))
-  (define-key my-keys-minor-mode-map (kbd "M-# e d") 'dired-jump)
-
-  (define-key my-keys-minor-mode-map (kbd "M-s")     'deadgrep)
+  ;; (define-key my-keys-minor-mode-map (kbd "M-# e s") 'switch-to-buffer)
+  ;; (define-key my-keys-minor-mode-map (kbd "M-# e i") 'ibuffer)
+  ;; (define-key my-keys-minor-mode-map (kbd "M-# e SPC") 'helm-projectile-find-file)
+  ;; (define-key my-keys-minor-mode-map (kbd "M-# e RET") (lambda () (interactive) (revert-buffer :ignore-auto :noconfirm)))
+  ;; (define-key my-keys-minor-mode-map (kbd "M-# e d") 'dired-jump)
 
   (defun bt/pbcopy ()
     (interactive)
@@ -481,6 +476,7 @@
     (shell-command
      (format-message "tmux set-buffer -b emacsclip \"%s\"" (buffer-substring (mark) (point))))
     (deactivate-mark))
+
 
 ;; functions
   (defun bt/show-filepaths ()
