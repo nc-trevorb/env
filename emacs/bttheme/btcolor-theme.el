@@ -208,10 +208,12 @@ Also bind `class' to ((class color) (min-colors 89))."
    `(org-done ((t (:weight bold :foreground ,brightgreen))))
    `(org-todo ((t (:weight bold :foreground ,brightred))))
 
-   `(org-warning ((t (:weight bold :foreground ,brightred))))
+   `(org-warning ((t (:foreground ,red))))
    `(org-code ((t (:background ,gray :foreground ,yellow))))
 
    `(org-ellipsis ((t (:foreground ,lightgray))))
+
+   `(org-agenda-dimmed-todo-face ((t (:weight bold))))
 
    `(tuareg-font-lock-governing-face ((t (:foreground ,blue))))
    `(tuareg-font-lock-operator-face ((t (:foreground ,blue))))

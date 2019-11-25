@@ -60,13 +60,13 @@
                    (propertize "RO "
                                'face 'error)))
 
-         "%b:%l " ;; buffer name : line number
+         "%b:%l:%C " ;; buffer name : line number : column number
 
          '(:eval (when (buffer-modified-p)
                    (propertize " [+]"
                                'face 'font-lock-warning-face)))
 
-         " [%o] " ;; mode-name
+         " [%o] " ;; scroll percent
 
          'mode-line-modes
          ))
@@ -84,7 +84,7 @@
     :config
     (projectile-global-mode)
     (setq projectile-globally-ignored-directories '("node_modules" "app/assets" "tmp" "vendor" "elpa" "zsh/zsh-syntax-highlighting"))
-    (setq projectile-globally-ignored-file-suffixes '(".png" ".gif" ".pdf")))
+    (setq projectile-globally-ignored-file-suffixes '(".png" ".gif" ".pdf" ".opam.locked")))
 
   (use-package helm-config
     :diminish (helm-mode . "")
@@ -106,13 +106,16 @@
 
     :config
     (helm-projectile-on)
+
     ;; make helm always open in split window at the bottom
     (setq helm-split-window-in-side-p t)
     (add-to-list 'display-buffer-alist
                  `(,(rx bos "*helm" (* not-newline) "*" eos)
                    (display-buffer-in-side-window)
                    (inhibit-same-window . t)
-                   (window-height . 0.4))))
+                   (window-height . 0.4)))
+
+    )
 
   (use-package helm-swoop
     :ensure t ;; :pin melpa
@@ -126,6 +129,7 @@
     )
 
   (use-package whitespace
+    :diminish (global-whitespace-mode . "")
     ;; http://ergoemacs.org/emacs/whitespace-mode.html
     :config
     (setq whitespace-style (quote (face trailing newline tab-mark newline-mark)))
@@ -162,13 +166,37 @@
   (use-package whole-line-or-region :diminish :config (whole-line-or-region-mode))
   (use-package expand-region :config (setq expand-region-fast-keys-enabled nil))
 
-  (use-package dired
+  (use-package undo-tree
+    :diminish
+    :bind
+    (:map undo-tree-visualizer-mode-map
+          ("e" . 'undo-tree-visualize-undo)
+          ("n" . 'undo-tree-visualize-redo)
+          ("h" . 'undo-tree-visualize-switch-branch-left)
+          ("i" . 'undo-tree-visualize-switch-branch-right)
+          ("l" . 'undo-tree-visualize-undo-to-x)
+          ("y" . 'undo-tree-visualize-redo-to-x)
+          ("q" . 'undo-tree-visualizer-abort)
+          ("C-g" . 'undo-tree-visualizer-abort)
+          ("C-m" . 'undo-tree-visualizer-quit)
+          )
     :config
-    ;; not working in :bind
-    (define-key dired-mode-map (kbd "U") 'wdired-change-to-wdired-mode)
+    (global-undo-tree-mode)
+    )
 
-    (with-eval-after-load "wdired"
-      (define-key wdired-mode-map (kbd "M-# M-$") 'wdired-finish-edit)))
+  (use-package wdired)
+  (use-package dired
+    :bind
+    (:map
+     dired-mode-map
+     ("e" . 'dired-previous-line)
+     ("n" . 'dired-next-line)
+     ("A" . 'wdired-change-to-wdired-mode)
+
+     :map wdired-mode-map
+     ("M-# C-r" . 'wdired-abort-changes)
+     ("M-# M-$" . 'wdired-finish-edit))
+    )
 
 
   ;; deferred packages
@@ -345,14 +373,12 @@
       (org-ctrl-c-ctrl-c)
       (org-todo "{ }"))
 
-    (defun bt/org-journaling-on ()
+    (defun bt/org-full-save ()
       (interactive)
-      (define-key my-keys-minor-mode-map (kbd "M-RET") 'bt/org-journal-entry))
-
-    (defun current-line-empty-p ()
-      (save-excursion
-        (beginning-of-line)
-        (looking-at "[[:space:]]*$")))
+      (bt/whitespace)
+      (bt/org-update-all-statistics)
+      (bt/save)
+      )
 
     (setq bt/org-hide-level 1)
     (defun bt/dec-org-hiding ()
@@ -385,27 +411,35 @@
 
      ("k" . 'bt/org-beginning-of-line)
 
+     ("M-# M-$" . 'bt/org-full-save)
+
      ;; ("|" . 'outline-hide-sublevels)
      ;; ("\\" . 'bt/reset-org-hiding)
-     ;; ("[" . 'bt/dec-org-hiding)
-     ;; ("]" . 'bt/inc-org-hiding)
+     ("[" . 'bt/dec-org-hiding)
+     ("]" . 'bt/inc-org-hiding)
 
      :map org-mode-map
      ;; ("M-# C-j" . 'bt/org-journal-entry)
      ("M-# D" . 'bt/org-insert-date)
      ("M-# T" . 'bt/org-insert-datetime)
 
+     ("M-# d" . 'org-deadline)
+     ("M-# s" . 'org-schedule)
+
+     ("M-# C-a" . 'org-agenda-list)
+
      ("M-# C-n" . 'bt/org-insert-list-elt)
      ("M-# C-h" . 'bt/org-insert-heading)
      ("M-# C-m" . 'bt/org-insert-todo)
 
-     ("M-# C-c" . 'bt/org-add-todo-counter)
+     ("M-# /" . 'bt/org-add-todo-counter)
      ("M-# C-t" . (lambda () (interactive) (org-todo "{ }")))
+     ("M-# C-b" . (lambda () (interactive) (org-todo "{blocked}")))
+     ("M-# C-p" . (lambda () (interactive) (org-todo "{plan}")))
      ("M-# C-d" . (lambda () (interactive) (org-todo "{X}")))
      ("M-# C-s" . (lambda () (interactive) (org-todo "{skip}")))
-     ("M-# C-b" . (lambda () (interactive) (org-todo "{blocked}")))
      ("M-# C-f" . (lambda () (interactive) (org-todo "{followup}")))
-     ("M-# C-SPC" . (lambda () (interactive) (org-todo "")))
+     ("M-# SPC" . (lambda () (interactive) (org-todo "")))
 
      ("M-# C-l" . 'org-promote-subtree)
      ("M-# C-y" . 'org-demote-subtree)
@@ -420,21 +454,31 @@
 
     :config
     (setq org-todo-keywords
-          '((sequence "{ }" "{blocked}" "|" "{X}" "{skip}" "{followup}")))
+          '((sequence "{ }" "{blocked}" "{plan}" "|" "{X}" "{skip}" "{followup}")))
 
     (setq org-startup-indented t)      ;; indent tasks and only show one star
+    (setq org-log-done 'time)          ;; timestamp when finishing a task
     (setq org-catch-invisible-edits t) ;; don't allow edits to collapsed parts of a buffer
     ;; (setq org-startup-folded 'content) ;; show all headings at startup
     (setq org-enforce-todo-dependencies t) ;; can't finish a task with unfinished children
     (setq org-blank-before-new-entry nil) ;; no blank line between heading for org-metareturn
     (setq org-ellipsis " [...]")
-    (setq org-archive-location "~/org/archive.org::* From %s")
+    (setq org-archive-location "~/org/archives/archive.org::* From %s")
+    (setq org-agenda-files '("~/org"))
+
+    (setq org-agenda-time-grid
+          '((daily today require-timed)
+            (600 800 1000 1200 1400 1600 1800 2000 2200 )
+            "      " "──────────────────────────"))
 
     (add-to-list 'org-structure-template-alist '("r" "#+BEGIN_SRC ruby\n?\n#+END_SRC"))
     (add-to-list 'org-structure-template-alist '("o" "#+BEGIN_SRC ocaml\n?\n#+END_SRC"))
+    ;; (add-to-list 'org-structure-template-alist '("d" "DEADLINE: ?"))
+    ;; (add-to-list 'org-structure-template-alist '("s" "SCHEDULED: ?"))
 
     (add-hook 'before-save-hook 'org-align-all-tags)
-    (add-hook 'before-save-hook 'bt/org-update-all-statistics)
+    ;; using this as a hook screws up scrolling while undoing
+    ;; (add-hook 'before-save-hook 'bt/org-update-all-statistics)
     )
 
 ;; basic keys

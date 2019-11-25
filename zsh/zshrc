@@ -8,7 +8,15 @@ OS_NAME='openbsd'
 ### OS-specific ###
 case "$OS_NAME" in
     openbsd)
-        alias t='tree'
+        function t() {
+            if [[ "$PWD" == "$HOME" ]]; then
+                # remove this when tmux pane_current_path is working
+                echo "can't use tree in home"
+            else
+                tree -F "$@"
+            fi
+        }
+        # alias t='tree'
         alias ls='colorls -G'
         alias l='ls -lhF'
 
@@ -80,12 +88,13 @@ bindkey "^U" backward-kill-line                  # C-u acts like bash
 autoload -U select-word-style
 select-word-style bash
 
-bindkey '^w' kill-line
 bindkey '^b' backward-kill-word
 bindkey '^f' kill-word
 bindkey '^p' yank
 bindkey '^r' undo
 bindkey '^v' delete-char-or-list
+bindkey '^t' kill-line
+bindkey '^w' kill-line
 
 bindkey '^[m' history-incremental-search-backward
 bindkey '^[M' history-incremental-search-forward
@@ -98,9 +107,11 @@ bindkey '^[y' forward-word
 bindkey '^[o' forward-word
 bindkey '^[(' end-of-line # iterm remaps M-i -> M-(
 bindkey '^[z' beginning-of-line
-bindkey '^[w' kill-line
-bindkey "^['" clear-screen
 
+bindkey '^[w' kill-whole-line
+bindkey '^[t' kill-whole-line
+bindkey "^['" clear-screen
+bindkey '^[>' kill-word # iterm remaps M-del -> M->
 
 setopt LOCAL_OPTIONS # allow functions to have local options
 setopt LOCAL_TRAPS   # allow functions to have local traps
