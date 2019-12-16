@@ -30,7 +30,8 @@
   (defalias 'bt/up 'previous-line)
   (defalias 'bt/right 'forward-char)
 
-  (defalias 'bt/menu 'helm-M-x)
+  (defalias 'bt/m-x-menu 'helm-M-x)
+  (defalias 'bt/universal-search 'deadgrep)
 
   ;; emacs uses "up"/"down" to refer to the text in the buffer moving,
   ;; bt/ uses direction that the cursor moves
@@ -57,28 +58,7 @@
     (bt/split-up)
     (bt/switch-window-down))
 
-  (defun bt/access-file-left ()
-    (interactive)
-    (bt/split-left)
-    (bt/access-file))
-
-  (defun bt/access-file-right ()
-    (interactive)
-    (bt/split-right)
-    (bt/access-file))
-
-  (defun bt/access-file-up ()
-    (interactive)
-    (bt/split-up)
-    (bt/access-file))
-
-  (defun bt/access-file-down ()
-    (interactive)
-    (bt/split-down)
-    (bt/access-file))
-
-  (defalias 'bt/access-file 'helm-projectile-find-file)
-  (defalias 'bt/access-file-this-window 'helm-projectile-find-file)
+  (defalias 'bt/open-file 'helm-projectile-find-file)
   (defalias 'bt/buffer-list 'ibuffer)
   (defalias 'bt/go-to-buffer 'switch-to-buffer)
   (defalias 'bt/dired 'dired-jump)
@@ -86,7 +66,7 @@
 
   (defalias 'bt/whole-window 'delete-other-windows)
   (defalias 'bt/close-window 'delete-window)
-  (defalias 'bt/window-revert 'winner-undo)
+  (defalias 'bt/window-undo 'winner-undo)
 
   (defun bt/checkout-buffer ()
     (interactive)
@@ -146,54 +126,49 @@
     (re-search-forward whitespace)
     (bt/left))
 
-  (defun bt/match ()
+  (defalias 'bt/match 'isearch-forward-regexp)
+
+  (defun bt/match-swoop ()
     (interactive)
-    (bt/mark-set ?M)
+    ;; (bt/mark-set ?M)
     (helm-swoop :$query ""))
 
-  (defun bt/to-match-start ()
-    (bt/mark-jump ?M))
+  ;; (defun bt/to-match-start ()
+  ;;   (bt/mark-jump ?M))
 
-  ;; use M-m M-p instead
-  ;; (defun bt/match-again ()
-  ;;   (interactive)
-  ;;   (helm-swoop :$query helm-swoop-pattern))
+  (defun bt/exchange ()
+    (interactive)
+    (if current-prefix-arg
+        (call-interactively 'replace-regexp)
+      (call-interactively 'replace-string)))
 
-  ;; use M-m M-o instead
-  ;; (defalias 'bt/match-symbol 'helm-swoop)
-  ;; (defalias 'bt/match-multi-all 'helm-multi-swoop-all)
-  ;; (defalias 'bt/match-multi-some 'helm-multi-swoop)
-  ;; (defalias 'bt/match 'isearch-forward-regexp)
-  ;; (defalias 'bt/match-exact 'isearch-forward)
-
-  (defalias 'bt/exchange 'replace-string)
-  (defalias 'bt/exchange-reg 'replace-regexp)
-  (defalias 'bt/query 'query-replace-regexp)
-  (defalias 'bt/query-exact 'query-replace)
-
-  (defun bt/query ()
+  (defun bt/query-exchange ()
     (interactive)
     (let ((scroll-conservatively 0))
-      (call-interactively 'query-replace-regexp)))
+      (if current-prefix-arg
+          (call-interactively 'query-replace-regexp)
+        (call-interactively 'query-replace))))
 
-  (defun bt/cursor-to-middle ()
-    (interactive)
-    (recenter-top-bottom))
+  ;; (defun bt/cursor-to-middle ()
+  ;;   (interactive)
+  ;;   (recenter-top-bottom))
 
-  (defun bt/cursor-to-top ()
-    (interactive)
-    (recenter-top-bottom 0))
+  ;; (defun bt/cursor-to-top ()
+  ;;   (interactive)
+  ;;   (recenter-top-bottom 0))
 
-  (defun bt/cursor-to-bottom ()
-    (interactive)
-    (recenter-top-bottom -1))
+  ;; (defun bt/cursor-to-bottom ()
+  ;;   (interactive)
+  ;;   (recenter-top-bottom -1))
 
-  (defun bt/mark-set (c)
-    (interactive "cset mark: ")
-    (point-to-register (capitalize c)))
+  ;; (defun bt/mark-set (c)
+  ;;   (interactive "cset mark: ")
+  ;;   (point-to-register (capitalize c)))
+
+  (defalias 'bt/ 'recenter-top-bottom)
 
   ;; (defalias 'bt/mark-set 'point-to-register)
-  (defalias 'bt/mark-jump 'jump-to-register)
+  ;; (defalias 'bt/mark-jump 'jump-to-register)
 
   (defalias 'bt/rect-wipe 'kill-rectangle)
   (defalias 'bt/rect-trade 'string-rectangle)
@@ -228,23 +203,14 @@
     (and (not buffer-read-only)
          (buffer-file-name)))
 
-  (defun bt/save-fn (msg)
-    (interactive)
-    (message (concat "saving: " msg))
-    (if (bt/editable) (save-buffer) (message "not saving...")))
-
   (defun bt/save ()
     (interactive)
-    (if (eq this-command last-command)
-        (call-interactively 'bt/full-save)
-      (bt/save-fn "save")))
+    (if (bt/editable) (save-buffer) (message "not saving...")))
 
   (defun bt/full-save ()
     (interactive)
     (bt/whitespace)
-    (message "fs attempt...")
-    (bt/save-fn "full-save")
-    )
+    (bt/normal))
 
   (defun bt/whitespace ()
     (interactive)
@@ -263,18 +229,18 @@
     (bt/select)
     (setq bt/selection-line (line-number-at-pos))
     (bt/eol)
-    (set-marker bt/mark-anchor-eol (+ 1 (point)))
-    )
+    (set-marker bt/mark-anchor-eol (+ 1 (point))))
 
   (defalias 'bt/deselect 'deactivate-mark)
   (defalias 'bt/reselect 'exchange-point-and-mark)
   (defalias 'bt/flip-selection 'exchange-point-and-mark)
   (defalias 'bt/autocomplete 'hippie-expand)
   (defalias 'bt/help 'help-command)
-  (defalias 'bt/paste-ring 'helm-show-kill-ring)
+  (defalias 'bt/paste-from-history 'helm-show-kill-ring)
 
-  (defalias 'bt/revert 'undo-tree-undo)
-  (defalias 'bt/revert-tree 'undo-tree-visualize)
+  (defalias 'bt/undo 'undo-tree-undo)
+  (defalias 'bt/redo 'undo-tree-redo)
+  (defalias 'bt/undo-tree 'undo-tree-visualize)
 
   (setq bt/mark-anchor (make-marker))
   (setq bt/mark-anchor-eol (make-marker))
@@ -355,20 +321,39 @@
        (bt/adjust-selection-for-edit)
        (,fn)))
 
-  (defmacro bt/defun-selection-fn-ex (name fn)
-    `(defun ,name ()
-       (interactive)
-       (save-excursion
-         (bt/adjust-selection-for-edit)
-         (,fn))))
-
-  (bt/defun-selection-fn-ex bt/copy-selection bt/copy)
-  (bt/defun-selection-fn-ex bt/vanish-selection bt/vanish)
+  (bt/defun-selection-fn bt/vanish-selection bt/vanish)
   (bt/defun-selection-fn bt/dupe-selection bt/dupe)
   (bt/defun-selection-fn bt/trade-selection bt/trade)
   (bt/defun-selection-fn bt/wipe-selection bt/wipe)
 
-  (defun bt/bs ()
+  (defmacro bt/defun-line-fn (name fn)
+    `(defun ,name ()
+       (interactive)
+       (bt/old-select "ol")
+       (,fn)))
+
+  (bt/defun-line-fn bt/dupe-line bt/dupe)
+  (bt/defun-line-fn bt/trade-line bt/trade)
+  (bt/defun-line-fn bt/wipe-line bt/wipe)
+
+  (defmacro bt/defun-copy (fn &rest body)
+    `(defun ,fn ()
+       (interactive)
+       (save-excursion
+         ,@body
+         (bt/copy))))
+  (put 'bt/defun-copy 'lisp-indent-function 'defun)
+
+  (bt/defun-copy bt/copy-line
+    (bt/old-select "ol"))
+
+  (bt/defun-copy bt/copy-selection
+    (bt/adjust-selection-for-edit))
+
+  (bt/defun-copy bt/copy-eol
+    (bt/select-eol))
+
+ (defun bt/bs ()
     (interactive)
     (delete-char -1)
     (bt/add))
@@ -498,16 +483,15 @@
       (bt/old-select "il")
       (bt/right))))
 
-  ;; this does not select the newline, which is probably what I want
+  (defun bt/old-select-line ()
+    (interactive)
+    (bt/old-select "il"))
+
   (defun bt/select-eol ()
     (interactive)
     (bt/select)
     (bt/eol)
     (bt/flip-selection))
-
-  (defun bt/old-select-line ()
-    (interactive)
-    (bt/old-select "il"))
 
   (defun bt/comment ()
     (interactive)
@@ -526,16 +510,10 @@
     (bt/select-eol)
     (bt/vanish))
 
-  (defun bt/copy-eol ()
-    (interactive)
-    (save-excursion
-      (bt/select-eol)
-      (bt/copy)))
-
   (defun bt/dupe-eol ()
     (interactive)
-    (bt/copy-eol)
-    (bt/paste-eol))
+    (bt/select-eol)
+    (bt/dupe))
 
   (defun bt/indent-paragraph ()
     (interactive)
@@ -548,11 +526,6 @@
         (progn
           (bt/select-eol)
           (bt/wipe))))
-
-  (defun bt/wipe-line ()
-    (interactive)
-    (bt/old-select-line)
-    (bt/wipe))
 
   (defun bt/paste-raw ()
     (interactive)
@@ -575,13 +548,9 @@
     (insert c)
     (bt/left))
 
-  (defun bt/one-space ()
+  (defun bt/cycle-spacing ()
     (interactive)
-    (just-one-space))
-
-  (defun bt/zero-spaces ()
-    (interactive)
-    (just-one-space 0))
+    (cycle-spacing 1 nil 'fast))
 
   ;; (defun bt/repeat-command ()
   ;;   (interactive)
@@ -595,42 +564,32 @@
 
   (bt/defun-add bt/trade-eol bt/wipe-eol)
   (bt/defun-add bt/trade-bol bt/wipe-bol)
-  (bt/defun-add-fn bt/trade-line
-    (if (not (bt/on-blank-line))
-        (progn
-          (bt/old-select-line)
-          (bt/wipe)))
-    (bt/indent))
+  ;; (bt/defun-add-fn bt/trade-line
+  ;;   (if (not (bt/on-blank-line))
+  ;;       (progn
+  ;;         (bt/old-select "il")
+  ;;         (bt/wipe)))
+  ;;   (bt/indent))
 
   (bt/defun-add bt/add-eol bt/eol)
   (bt/defun-add bt/add-bov bt/bov)
 
-  (defun bt/blank-below ()
+  (defun bt/newline-here ()
     (interactive)
-    (save-excursion
-      (bt/eol)
-      (newline-and-indent))
-    )
-
-  (defun bt/blank-above ()
-    (interactive)
-    (save-excursion
-      (bt/bol)
-      (insert "\n"))
-    )
-
-  (defun bt/add-below ()
-    (interactive)
-    (bt/blank-below)
-    (bt/down)
-    (bt/indent)
+    (newline-and-indent)
     (bt/add))
 
-  (defun bt/add-above ()
+  (defun bt/newline-above ()
     (interactive)
-    (bt/blank-above)
+    (bt/bol)
+    (newline-and-indent)
     (bt/up)
-    (bt/indent)
+    (bt/trade-line))
+
+  (defun bt/newline-below ()
+    (interactive)
+    (bt/eol)
+    (newline-and-indent)
     (bt/add))
 
   (defun bt/paste-line ()
@@ -728,29 +687,30 @@
   ;; ("C-i" . "M-!")
   ;; ("S-RET" . "M-@")
   ;; ("C-:" . "M-#")
-  ;; ("<caps lock>" . "<f9>") ;; karabiner
-  ;; ("<f9>" . "M-$") ;; iterm
+  ;; ("<caps lock>" . "<f8>") ;; karabiner
+  ;; ("<f8>" . "M-$") ;; iterm
   ;; ("C-'" . "M-%")
-  ;; ("S-TAB" . "M-^")
+  ;; ("" . "M-^")
   ;; ("M-[" . "M-&")
   ;; ("S-M-RET" . "M-*")
-  ;; ("M--" . "M-(")
-  ;; ("" . "M-)")
+  ;; ("C-TAB" . "M-+")
   ;; ("" . "M-_")
   ;; ("" . "M-=")
+  ;; ("" . "M-<")
   ;; ("M-<deletechar>" . "M->")
 
   :bind
   (:map my-keys-minor-mode-map
-        ("M-$" . 'bt/normal) ("S-<f8>" . 'bt/full-save) ("C-<f8>" . 'bt/full-save)
-        ("M-SPC" . 'bt/menu)
-        ("M-:" . 'bt/capture)
+        ("M-$" . 'bt/normal) ("<f8>" . 'bt/full-save)
+        ("M-SPC" . 'bt/cycle-spacing)
+        ("M-+" . 'bt/autocomplete)
         ;; ("M-G" . 'bt/git)
 
-        ("M-RET" . 'bt/blank-below) ("M-*" . 'bt/blank-above) ("M-@" . 'bt/add-above)
+        ("M-RET" . 'bt/newline-above) ("M-@" . 'bt/newline-below)
 
         ("C-x z" . 'bt/noop)
-        ("C-M-r" . 'bt/window-revert)
+        ("C-M-r" . 'bt/noop)
+        ("C-M-u" . 'bt/window-undo)
         ("C-M-q" . 'bt/close-window)
         ("C-M-x" . 'bt/close-window)
         ("C-M-c" . 'bt/checkout-buffer)
@@ -760,11 +720,11 @@
         ("C-M-b" . 'bt/go-to-buffer)
         ("C-M-d" . 'bt/dired)
 
-        ("C-M-a C-M-t" . 'bt/access-file-this-window)
-        ("C-M-a C-M-h" . 'bt/access-file-left)
-        ("C-M-a C-M-n" . 'bt/access-file-down)
-        ("C-M-a C-M-e" . 'bt/access-file-up)
-        ("C-M-a C-M-i" . 'bt/access-file-right)
+        ;; ("C-M-a C-M-t" . 'bt/access-file-this-window)
+        ;; ("C-M-a C-M-h" . 'bt/access-file-left)
+        ;; ("C-M-a C-M-n" . 'bt/access-file-down)
+        ;; ("C-M-a C-M-e" . 'bt/access-file-up)
+        ;; ("C-M-a C-M-i" . 'bt/access-file-right)
 
         ("C-M-s C-M-h" . 'bt/split-left)
         ("C-M-s C-M-n" . 'bt/split-down)
@@ -776,74 +736,55 @@
         ("C-M-e" . 'bt/switch-window-up)
         ("C-M-i" . 'bt/switch-window-right)
 
-        ("M-&" . 'bt/fold) ("M-{" . 'bt/fold-max)
-        ("M-]" . 'bt/unfold) ("M-}" . 'bt/unfold) ("C-]" . 'bt/noop)
+        ("M-&" . 'bt/fold) ("M-]" . 'bt/unfold)
+        ("M-{" . 'bt/start-macro) ("M-}" . 'bt/end-macro)
+        ("M-;" . 'bt/run-macro)
 
-        ("M-q" . 'bt/query)
-        ("M-w" . 'bt/wipe) ("C-w" . 'bt/wipe-eol)
-        ("M-b" . 'bt/bw-wipe-word) ("C-b" . 'bt/bw-wipe-word)
-        ("M-p" . 'bt/paste-fmt) ("C-p" . 'bt/paste-eol)
-        ("M-f" . 'bt/wipe-word) ("C-f" . 'bt/wipe-word)
+        ("M-q" . 'bt/help) ("M-Q" . 'bt/help)
+        ("M-w" . 'bt/wipe-line) ("M-W" . 'bt/noop) ("C-w" . 'bt/wipe-eol)
+        ("M-b" . 'bt/bw-wipe-word) ("M-B" . 'bt/noop) ("C-b" . 'bt/bw-wipe-word)
+        ("M-p" . 'bt/paste-fmt) ("M-P" . 'bt/paste-raw) ("C-p" . 'bt/paste-eol)
+        ("M-f" . 'bt/wipe-word) ("M-F" . 'bt/noop) ("C-f" . 'bt/wipe-word)
 
-        ("M-Q" . 'bt/query-exact)
-        ("M-W" . 'bt/noop)
-        ("M-B" . 'bt/noop)
-        ("M-P" . 'bt/paste-ring)
-        ("M-F" . 'bt/noop)
+        ("M-a" . 'bt/add) ("M-A" . 'bt/add-bov) ("C-a" . 'bt/add-eol)
+        ("M-r" . 'bt/redo) ("M-R" . 'bt/noop) ("C-r" . 'bt/redo)
+        ("M-s" . 'bt/select) ("M-S" . 'bt/select-line) ("C-s" . 'bt/select-eol)
+        ("M-t" . 'bt/trade-line) ("M-T" . 'bt/noop) ("C-t" . 'bt/trade-eol)
+        ;; ("M-g" . 'bt/graft) ("M-G" . 'bt/noop)
 
-        ("M-," . 'bt/noop) ("M-<" . 'bt/noop)
-        ("M-a" . 'bt/add)   ("C-a" . 'bt/add-eol)
-        ("M-r" . 'bt/revert-tree) ("C-r" . 'bt/revert)
-        ("M-s" . 'bt/select) ("C-s" . 'bt/select-eol)
-        ("M-t" . 'bt/trade-line) ("C-t" . 'bt/trade-eol)
-        ;; ("M-g" . 'bt/noop) ("C-g" . 'bt/noop)
+        ("M-/" . 'bt/universal-search) ("M-?" . 'bt/noop)
+        ("M-," . 'bt/comment) ("M-<" . 'bt/comment-par) ("C-*" . 'bt/comment-par)
+        ;; ("M-x" . 'bt/exchange) ("M-X" . 'bt/exchange-exact)
+        ("M-c" . 'bt/copy-line) ("M-C" . 'bt/copy-line) ("C-c" . 'bt/copy-eol)
+        ("M-d" . 'bt/dupe-line) ("M-D" . 'bt/dupe-line) ("C-d" . 'bt/dupe-eol)
+        ("M-v" . 'bt/vanish) ("M-V" . 'bt/noop) ("C-v" . 'bt/vanish-eol)
 
-        ("M-A" . 'bt/noop)
-        ("M-R" . 'bt/noop)
-        ("M-S" . 'bt/noop)
-        ("M-T" . 'bt/noop)
-        ("M-G" . 'bt/noop)
-
-        ;; ("M-x" . 'bt/noop) ("C-x" . 'bt/noop)
-        ("M-c" . 'bt/copy-line) ("C-c" . 'bt/copy-eol)
-        ("M-d" . 'bt/m-del) ("C-d" . 'bt/dupe-eol)
-        ("M-v" . 'bt/vanish) ("C-v" . 'bt/vanish)
-
-        ("M-/" . 'bt/help)
-
-        ("M-z" . 'bt/bol) ("C-z" . 'bt/noop)
-        ("M-l" . 'bt/bw-bow) ("C-l" . 'recenter-top-bottom)
-        ("M-u" . 'bt/noop) ("C-u" . 'bt/noop)
-        ("M-y" . 'bt/bow) ("C-y" . 'bt/noop)
-        ("M-:" . 'bt/match)
-        ("M->" . 'bt/m-del)
-
-        ("M-Z" . 'bt/noop)
-        ("M-D" . 'bt/downcase)
-        ("M-U" . 'bt/uppercase)
-        ("M-C" . 'bt/capitalize)
-
-        ("M-h" . 'bt/left) ("C-h" . 'bt/noop)
-        ("M-n" . 'bt/down) ("C-n" . 'bt/noop)
-        ("M-e" . 'bt/up) ("C-e" . 'bt/noop)
-        ("M-i" . 'bt/right) ("M-!" . 'bt/noop)
-        ("M-o" . 'bt/eow) ("C-o" . 'universal-argument)
-        ("M-'" . 'bt/noop) ("M-\"" . 'bt/noop) ("M-%" . 'bt/noop)
-
-        ("M-H" . 'bt/bw-drag)
-        ("M-I" . 'bt/drag)
-        ("M-E" . 'bt/bw-drag-line)
-        ("M-N" . 'bt/drag-line)
-        ("M-L" . 'bt/bw-drag-word)
-        ("M-Y" . 'bt/drag-word)
-
-        ("M-k" . 'bt/bov) ("M-K" . 'bt/noop) ("C-k" . 'bt/bov)
-        ("M-m" . 'bt/bop) ("M-M" . 'bt/noop)
-        ("M-DEL" . 'bt/m-bs)
-        ("M-." . 'bt/eop) ;; ("M->" . 'bt/noop)
-        ("M--" . 'bt/eol) ("C-_" . 'bt/eol) ("M-_" . 'bt/noop)
+        ("M-|" . 'bt/noop)
+        ("M-\\" .'bt/noop)
 
         ("M-j" . 'bt/join-line-below) ("M-J" . 'bt/join-line-above)
+
+        ("M-`" . 'push-mark)
+        ("M-(" . 'pop-global-mark) ("M-)" . 'bt/eob)
+
+        ("M-z" . 'bt/bol) ("M-Z" . 'bt/noop)
+        ("M-l" . 'bt/bw-bow) ("M-L" . 'bt/bw-boW) ("C-l" . 'bt/bw-drag-word)
+        ("M-u" . 'bt/undo) ("M-U" . 'bt/undo-tree) ("C-u" . 'bt/undo)
+        ("M-y" . 'bt/bow) ("M-Y" . 'bt/boW) ("C-y" . 'bt/drag-word)
+        ("M-:" . 'bt/capture)
+
+        ("M-h" . 'bt/left) ("C-h" . 'bt/bw-drag)
+        ("M-n" . 'bt/down) ("C-n" . 'bt/drag-line)
+        ("M-e" . 'bt/up) ("C-e" . 'bt/bw-drag-line)
+        ("M-i" . 'bt/right) ("M-!" . 'bt/drag)
+        ("M-o" . 'bt/eow) ("M-O" . 'bt/eoW) ("C-o" . 'universal-argument)
+        ("M-'" . 'bt/match) ("M-\"" . 'bt/match-swoop)
+
+        ("M-k" . 'bt/bov) ("M-K" . 'bt/noop)
+        ("M-m" . 'bt/bop) ("M-M" . 'bt/scroll-up-page)
+        ("M-DEL" . 'bt/m-bs)
+        ("M-." . 'bt/eop) ("M->" . 'bt/scroll-down-page)
+        ("M--" . 'bt/eol) ("M-_" . 'bt/eol) ("C-_" . 'bt/eol)
 
         ;; :map minibuffer-local-completion-map
         ;; ("C-o" . 'minibuffer-complete)
@@ -857,55 +798,65 @@
         ("C-s" . 'bt/noop)
 
         :map modalka-mode-map
-        ("RET" . 'bt/add-below)
-        ("SPC" . 'bt/noop)
+        ("RET" . 'bt/newline-here)
+        ("SPC" . 'bt/cycle-spacing)
 
-        ("!" . 'bt/noop) ("@" . 'bt/noop) ("#" . 'bt/noop) ("$" . 'bt/noop) ("%" . 'bt/noop)
-        ("1" . 'bt/one-space) ("2" . 'bt/noop) ("3" . 'bt/noop) ("4" . 'bt/noop) ("5" . 'bt/noop)
+        ("!" . 'bt/noop) ("@" . 'bt/noop) ("#" . 'bt/noop) ("$" . 'bt/noop) ("%" . 'bt/noop) ("^" . 'bt/noop) ("&" . 'bt/noop) ("*" . 'bt/noop)
+        ("1" . 'bt/noop) ("2" . 'bt/noop) ("3" . 'bt/noop) ("4" . 'bt/noop) ("5" . 'bt/noop) ("6" . 'bt/noop) ("7" . 'bt/noop) ("8" . 'bt/noop) ("9" . 'bt/noop) ("0" . 'bt/noop)
 
-        ("^" . 'bt/noop) ("&" . 'bt/noop) ("*" . 'bt/noop)
-        ("6" . 'bt/noop) ("7" . 'bt/noop) ("8" . 'bt/noop) ("9" . 'bt/noop) ("0" . 'bt/zero-spaces)
+        ("[" . 'bt/fold) ("]" . 'bt/unfold)
+        ("{" . 'bt/start-macro) ("}" . 'bt/end-macro)
+        (";" . 'bt/run-macro)
 
-        ("~" . 'bt/noop) ("`" . 'bt/noop)
-
-        ("q" . 'bt/query) ("Q" . 'bt/query-exact)
-        ("W" . 'bt/wipe-line)
+        ("qo" . 'bt/open-file)
+        ("qb" . 'bt/go-to-buffer)
+        ("qm" . 'bt/m-x-menu)
+        ("qs" . 'bt/reselect)
+        ("qh" . 'bt/help)
+        ("qk" . 'bt/help-key)
+        ("qa" . 'bt/help-all-keys)
+        ("q'" . 'bt/help-search)
+        ("qp" . 'bt/paste-from-history)
+        ("ql" . 'goto-line)
+        ("qu" . 'bt/undo-tree)
+        ("q(" . 'bt/eval-expr) ("q)" . 'bt/inline-eval)
+        ("W" . 'bt/noop)
         ("b" . 'bt/bw-wipe-word) ("B" . 'bt/noop)
         ("p" . 'bt/paste-fmt) ("P" . 'bt/paste-raw)
         ("f" . 'bt/wipe-word) ("F" . 'bt/noop)
 
         ("a" . 'bt/add) ("A" . 'bt/add-bov)
-        ("r" . 'bt/revert-tree) ("R" . 'bt/noop)
+        ("r" . 'bt/redo) ("R" . 'bt/noop)
         ("s" . 'bt/select) ("S" . 'bt/select-line)
-        ("T" . 'bt/trade-line)
+        ("T" . 'bt/noop)
         ("g" . 'bt/graft) ("G" . 'bt/noop)
 
-        ("," . 'bt/noop) ("<" . 'bt/noop)
-        ("x" . 'bt/exchange) ("X" . 'bt/exchange-exact)
+        ("/" . 'bt/universal-search) ("?" . 'bt/noop)
+        ("," . 'bt/comment) ("<" . 'bt/comment-par)
+        ("x" . 'bt/exchange) ("X" . 'bt/query-exchange)
         ("C" . 'bt/copy-line)
         ("D" . 'bt/dupe-line)
-        ("v" . 'bt/vanish) ("V" . 'bt/vanish-line)
+        ("v" . 'bt/vanish) ("V" . 'bt/noop)
 
-        ("{" . 'bt/fold) ("}" . 'bt/unfold)
-
-        ("[" . 'bt/start-macro) ("]" . 'bt/end-macro)
-        ("|" . 'bt/run-macro)
-
-        ("/" . 'bt/comment-par) ("\\" .'bt/comment)
+        ("|" . 'bt/noop)
+        ("\\" .'bt/noop)
 
         ("=a" . 'bt/rect-add)
         ("=t" . 'bt/rect-trade)
         ("=w" . 'bt/rect-wipe)
         ("=p" . 'bt/rect-paste)
+        ("j" . 'bt/join-line-below) ("J" . 'bt/join-line-above)
 
-        ("(" . 'bt/bob) (")" . 'bt/eob)
-        (";" . 'deadgrep)
+        ("`" . 'push-mark) ("~" . 'helm-all-mark-rings)
+        ("(" . 'pop-global-mark) (")" . 'bt/jump-forward)
 
         ("z" . 'bt/bol) ("Z" . 'bt/noop)
         ("l" . 'bt/bw-bow) ("L" . 'bt/bw-boW)
-        ("u" . 'bt/noop) ("U" . 'bt/noop)
-        ("y" . 'bt/bow) ("Y" . 'bt/boW)
-        (":" . 'bt/match)
+        ("u" . 'bt/undo) ("U" . 'bt/undo-tree)
+        ("y" . 'bt/bow) ("Y" . 'boW/bt)
+        (":" . 'recenter-top-bottom)
+
+        ("'" . 'bt/match) ("\"" . 'bt/match-swoop)
         ("<deletechar>" . 'bt/del)
 
         ("h" . 'bt/left) ("H" . 'bt/noop)
@@ -913,18 +864,12 @@
         ("e" . 'bt/up) ("E" . 'bt/noop)
         ("i" . 'bt/right) ("I" . 'bt/noop)
         ("o" . 'bt/eow) ("O" . 'bt/eoW)
-        ("'" . 'isearch-forward-regexp) ("\"" . 'isearch-backward-regexp)
 
-        ("j" . 'bt/join-line-below) ("J" . 'bt/join-line-above)
         ("k" . 'bt/bov) ("K" . 'bt/noop)
-        ("m" . 'bt/bop) ("M" . 'bt/noop)
+        ("m" . 'bt/bop) ("M" . 'bt/bob)
         ("DEL" . 'bt/bs)
-        ("." . 'bt/eop) (">" . 'bt/noop)
+        ("." . 'bt/eop) (">" . 'bt/eob)
         ("-" . 'bt/eol) ("_" . 'bt/eol)
-
-        ("`" . 'bt/help) ("~" . 'bt/help)
-
-  ;;       ;; :map global-map
 
         )
 

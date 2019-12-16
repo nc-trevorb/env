@@ -52,6 +52,7 @@
   (setq set-mark-command-repeat-pop t)
   (setq register-preview-delay 0)
   (setq scroll-conservatively 101)
+  (setq scroll-margin 2)
 
   (setq-default mode-line-format
                 (list
@@ -401,12 +402,12 @@
     ;; iterm remaps C-; to M-#
     :bind
     (:map modalka-mode-map
-     ("H" . 'org-backward-heading-same-level)
-     ("I" . 'org-forward-heading-same-level)
-     ("U" . 'outline-up-heading)
-     ("E" . 'outline-previous-visible-heading)
-     ("N" . 'outline-next-visible-heading)
-     ("," . 'outline-previous-visible-heading)
+     ("M-H" . 'org-backward-heading-same-level)
+     ("M-I" . 'org-forward-heading-same-level)
+     ("M-P" . 'outline-up-heading) ;; parent
+     ("M-E" . 'outline-previous-visible-heading)
+     ("M-N" . 'outline-next-visible-heading)
+     ("m" . 'outline-previous-visible-heading)
      ("." . 'outline-next-visible-heading)
 
      ("k" . 'bt/org-beginning-of-line)
@@ -419,7 +420,7 @@
      ("]" . 'bt/inc-org-hiding)
 
      :map org-mode-map
-     ;; ("M-# C-j" . 'bt/org-journal-entry)
+     ("M-# C-l" . 'bt/org-journal-entry)
      ("M-# D" . 'bt/org-insert-date)
      ("M-# T" . 'bt/org-insert-datetime)
 
@@ -441,8 +442,8 @@
      ("M-# C-f" . (lambda () (interactive) (org-todo "{followup}")))
      ("M-# SPC" . (lambda () (interactive) (org-todo "")))
 
-     ("M-# C-l" . 'org-promote-subtree)
-     ("M-# C-y" . 'org-demote-subtree)
+     ("M-# (" . 'org-promote-subtree)
+     ("M-# )" . 'org-demote-subtree)
 
      ("M-# M-# C-w" . 'org-cut-subtree)
      ("M-# M-# C-c" . 'org-copy-subtree)
@@ -464,7 +465,7 @@
     (setq org-blank-before-new-entry nil) ;; no blank line between heading for org-metareturn
     (setq org-ellipsis " [...]")
     (setq org-archive-location "~/org/archives/archive.org::* From %s")
-    (setq org-agenda-files '("~/org"))
+    (setq org-agenda-files '("~/org/calendar.org" "~/org/projects/"))
 
     (setq org-agenda-time-grid
           '((daily today require-timed)
@@ -482,10 +483,6 @@
     )
 
 ;; basic keys
- ;;; new
-  ;; (global-set-key (kbd "C-z") nil) ;; can still suspend with C-x C-z
-
-
   (global-unset-key (kbd "C-x h"))
   (global-unset-key (kbd "C-x n"))
   (global-unset-key (kbd "C-x e"))
@@ -496,18 +493,8 @@
   (global-unset-key (kbd "C-x C-i"))
   (global-unset-key (kbd "M-`"))
 
-  (define-key my-keys-minor-mode-map (kbd "M-# q RET") 'delete-window)
-  (define-key my-keys-minor-mode-map (kbd "M-# q a RET") 'save-buffers-kill-terminal)
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# w")     'save-buffer)
-
-  (define-key my-keys-minor-mode-map (kbd "M-# v") 'eval-expression)
-  (define-key my-keys-minor-mode-map (kbd "M-# )") 'eval-last-sexp)
-
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# e s") 'switch-to-buffer)
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# e i") 'ibuffer)
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# e SPC") 'helm-projectile-find-file)
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# e RET") (lambda () (interactive) (revert-buffer :ignore-auto :noconfirm)))
-  ;; (define-key my-keys-minor-mode-map (kbd "M-# e d") 'dired-jump)
+  ;; (define-key my-keys-minor-mode-map (kbd "M-# v") 'eval-expression)
+  ;; (define-key my-keys-minor-mode-map (kbd "M-# )") 'eval-last-sexp)
 
   (defun bt/pbcopy ()
     (interactive)
@@ -520,7 +507,6 @@
     (shell-command
      (format-message "tmux set-buffer -b emacsclip \"%s\"" (buffer-substring (mark) (point))))
     (deactivate-mark))
-
 
 ;; functions
   (defun bt/show-filepaths ()

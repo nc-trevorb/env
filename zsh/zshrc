@@ -91,7 +91,8 @@ select-word-style bash
 bindkey '^b' backward-kill-word
 bindkey '^f' kill-word
 bindkey '^p' yank
-bindkey '^r' undo
+bindkey '^r' redo
+bindkey '^u' undo
 bindkey '^v' delete-char-or-list
 bindkey '^t' kill-line
 bindkey '^w' kill-line
@@ -127,7 +128,7 @@ function try_source() {
 }
 
 try_source $HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-try_source $HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+# try_source $HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
 export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'
 try_source $HOME/.zsh/
 try_source /usr/local/share/chruby/chruby.sh
