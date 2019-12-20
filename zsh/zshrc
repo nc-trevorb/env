@@ -91,14 +91,15 @@ select-word-style bash
 bindkey '^b' backward-kill-word
 bindkey '^f' kill-word
 bindkey '^p' yank
-bindkey '^r' redo
+bindkey "^'" redo
 bindkey '^u' undo
 bindkey '^v' delete-char-or-list
 bindkey '^t' kill-line
 bindkey '^w' kill-line
 
-bindkey '^[m' history-incremental-search-backward
-bindkey '^[M' history-incremental-search-forward
+bindkey '^[:' history-incremental-search-backward
+bindkey '^[N' history-incremental-search-forward
+bindkey '^[E' history-incremental-search-backward
 bindkey '^[h' backward-char
 bindkey '^[n' down-line-or-history
 bindkey '^[e' up-line-or-history
@@ -106,13 +107,13 @@ bindkey '^[i' forward-char
 bindkey '^[l' backward-word
 bindkey '^[y' forward-word
 bindkey '^[o' forward-word
-bindkey '^[(' end-of-line # iterm remaps M-i -> M-(
 bindkey '^[z' beginning-of-line
+bindkey '^[-' end-of-line
 
 bindkey '^[w' kill-whole-line
 bindkey '^[t' kill-whole-line
-bindkey "^['" clear-screen
-bindkey '^[>' kill-word # iterm remaps M-del -> M->
+bindkey "^['" redo
+bindkey '^[u' undo
 
 setopt LOCAL_OPTIONS # allow functions to have local options
 setopt LOCAL_TRAPS   # allow functions to have local traps
