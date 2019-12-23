@@ -420,34 +420,34 @@
      ("]" . 'bt/inc-org-hiding)
 
      :map org-mode-map
-     ("M-# C-l" . 'bt/org-journal-entry)
-     ("M-# D" . 'bt/org-insert-date)
-     ("M-# T" . 'bt/org-insert-datetime)
+     ("M-# M-l" . 'bt/org-journal-entry)
+     ("M-# i d" . 'bt/org-insert-date)
+     ("M-# i t" . 'bt/org-insert-datetime)
 
-     ("M-# d" . 'org-deadline)
-     ("M-# s" . 'org-schedule)
+     ;; ("M-# d" . 'org-deadline)
+     ;; ("M-# s" . 'org-schedule)
 
-     ("M-# C-a" . 'org-agenda-list)
+     ;; ("M-# C-a" . 'org-agenda-list)
 
-     ("M-# C-n" . 'bt/org-insert-list-elt)
-     ("M-# C-h" . 'bt/org-insert-heading)
-     ("M-# C-m" . 'bt/org-insert-todo)
+     ("M-# M-n" . 'bt/org-insert-list-elt)
+     ("M-# M-h" . 'bt/org-insert-heading)
+     ("M-# M-m" . 'bt/org-insert-todo)
 
-     ("M-# /" . 'bt/org-add-todo-counter)
-     ("M-# C-t" . (lambda () (interactive) (org-todo "{ }")))
-     ("M-# C-b" . (lambda () (interactive) (org-todo "{blocked}")))
-     ("M-# C-p" . (lambda () (interactive) (org-todo "{plan}")))
-     ("M-# C-d" . (lambda () (interactive) (org-todo "{X}")))
-     ("M-# C-s" . (lambda () (interactive) (org-todo "{skip}")))
-     ("M-# C-f" . (lambda () (interactive) (org-todo "{followup}")))
-     ("M-# SPC" . (lambda () (interactive) (org-todo "")))
+     ("M-# M-c" . 'bt/org-add-todo-counter)
+     ("M-# M-t" . (lambda () (interactive) (org-todo "{ }")))
+     ("M-# M-b" . (lambda () (interactive) (org-todo "{blocked}")))
+     ("M-# M-p" . (lambda () (interactive) (org-todo "{plan}")))
+     ("M-# M-d" . (lambda () (interactive) (org-todo "{X}")))
+     ("M-# M-s" . (lambda () (interactive) (org-todo "{skip}")))
+     ("M-# M-f" . (lambda () (interactive) (org-todo "{followup}")))
+     ("M-# M-SPC" . (lambda () (interactive) (org-todo "")))
 
-     ("M-# (" . 'org-promote-subtree)
-     ("M-# )" . 'org-demote-subtree)
+     ("M-# M-(" . 'org-promote-subtree)
+     ("M-# M-)" . 'org-demote-subtree)
 
-     ("M-# M-# C-w" . 'org-cut-subtree)
-     ("M-# M-# C-c" . 'org-copy-subtree)
-     ("M-# M-# C-p" . 'org-paste-subtree)
+     ("M-# C-w" . 'org-cut-subtree)
+     ("M-# C-c" . 'org-copy-subtree)
+     ("M-# C-p" . 'org-paste-subtree)
      )
 
     :hook
