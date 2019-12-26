@@ -415,7 +415,7 @@
      ("M-# M-$" . 'bt/org-full-save)
 
      ;; ("|" . 'outline-hide-sublevels)
-     ;; ("\\" . 'bt/reset-org-hiding)
+     (";" . 'bt/reset-org-hiding)
      ("[" . 'bt/dec-org-hiding)
      ("]" . 'bt/inc-org-hiding)
 

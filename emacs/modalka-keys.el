@@ -7,7 +7,7 @@
   :bind
   (:map selected-keymap
         ("w" . bt/wipe-selection)
-        ("r" . bt/replace-selection)
+        ("b" . bt/become-selection)
         ("t" . bt/trade-selection)
         ("c" . bt/copy-selection)
         ("d" . bt/dupe-selection)
@@ -16,7 +16,7 @@
 
   :config
   (bt/define-prefix-action "w" 'bt/wipe)
-  (bt/define-prefix-action "r" 'bt/replace)
+  (bt/define-prefix-action "b" 'bt/become)
   (bt/define-prefix-action "t" 'bt/trade)
   (bt/define-prefix-action "c" 'bt/copy)
   (bt/define-prefix-action "d" 'bt/dupe)
@@ -64,13 +64,13 @@
     (bt/split-up)
     (bt/switch-window-down))
 
-  (defalias 'bt/search-for-file 'helm-projectile-find-file)
+  (defalias 'bt/open-file 'helm-projectile-find-file)
   (defalias 'bt/buffer-list 'ibuffer)
   (defalias 'bt/go-to-buffer 'switch-to-buffer)
   (defalias 'bt/dired 'dired-jump)
   ;; (defalias 'bt/locate-file 'find-file)
 
-  (defalias 'bt/whole-window 'delete-other-windows)
+  (defalias 'bt/maximize 'delete-other-windows)
   (defalias 'bt/quit-window 'delete-window)
   (defalias 'bt/window-undo 'winner-undo)
   (defalias 'bt/window-redo 'winner-redo)
@@ -258,6 +258,7 @@
   (defalias 'bt/help 'help-command)
   (defalias 'bt/help-search 'describe-symbol)
   (defalias 'bt/help-key 'describe-key)
+  (defalias 'bt/help-messages 'view-echo-area-messages)
   (defalias 'bt/help-all-keys 'describe-bindings)
   (defalias 'bt/paste-from-history 'helm-show-kill-ring)
 
@@ -352,15 +353,15 @@
 
   (bt/defun-add bt/trade bt/wipe)
 
-  (defun bt/replace ()
+  (defun bt/become ()
     (interactive)
     (bt/vanish)
     (bt/paste-fmt))
 
-  (defun bt/replace-eol ()
+  (defun bt/become-eol ()
     (interactive)
     (bt/select-eol)
-    (bt/replace))
+    (bt/become))
 
   (defun bt/dupe ()
     (interactive)
@@ -379,7 +380,7 @@
   (bt/defun-selection-fn bt/dupe-selection bt/dupe)
   (bt/defun-selection-fn bt/trade-selection bt/trade)
   (bt/defun-selection-fn bt/wipe-selection bt/wipe)
-  (bt/defun-selection-fn bt/replace-selection bt/replace)
+  (bt/defun-selection-fn bt/become-selection bt/become)
 
   (defmacro bt/defun-line-fn (name fn)
     `(defun ,name ()
@@ -389,7 +390,7 @@
 
   (bt/defun-line-fn bt/dupe-line bt/dupe)
   (bt/defun-line-fn bt/wipe-line bt/wipe)
-  (bt/defun-line-fn bt/replace-line bt/replace)
+  (bt/defun-line-fn bt/become-line bt/become)
   ;; (bt/defun-line-fn bt/trade-line bt/trade)
 
   (defmacro bt/defun-copy (fn &rest body)
@@ -608,13 +609,18 @@
     (interactive)
     (cycle-spacing 1 nil 'fast))
 
-  ;; (defun bt/repeat-command ()
-  ;;   (interactive)
-  ;;   (if bt/directional-key-repeat-seq
-  ;;       (if bt/directional-key-repeat-arg
-  ;;           (call-interactively ((key-binding bt/directional-key-repeat-seq) bt/directional-key-repeat-arg))
-  ;;         (call-interactively (key-binding bt/directional-key-repeat-seq)))
-  ;;     (message "no bt/directional-key-repeat-seq")))
+  (setq bt/repeat-cmd nil)
+  (setq bt/repeat-arg nil)
+  (defun bt/repeat-command ()
+    (interactive)
+    (if bt/repeat-cmd
+        (if bt/repeat-arg
+            (progn
+              (message (concat "repeating: " bt/repeat-cmd (string bt/repeat-arg)))
+              (call-interactively ((key-binding bt/repeat-cmd) bt/repeat-arg)))
+          (progn
+            (message (concat "repeating: " bt/repeat-cmd))
+            (call-interactively (key-binding bt/repeat-cmd))))))
 
   (defun bt/on-blank-line () (= (line-beginning-position) (line-end-position)))
 
@@ -667,6 +673,8 @@
     (let* ((target (concat i-or-o target-key))
            (key-seq (concat input-key target)))
       (define-key modalka-mode-map key-seq (lambda () (interactive)
+                                             (setq bt/repeat-cmd key-seq)
+                                             (setq bt/repeat-arg nil)
                                              (save-excursion
                                                (bt/old-select target)
                                                (funcall action))))))
@@ -705,6 +713,8 @@
               (funcall action)))
            (fn (lambda ()
                  (interactive)
+                 (setq bt/repeat-cmd key-seq)
+                 (setq bt/repeat-arg nil)
                  (cond
                   ((string= input-key "c") (save-excursion (funcall run-cmd)))
                   (t (funcall run-cmd))))))
@@ -712,7 +722,10 @@
 
   (defun bt/define-until-key (cmd-key key action search)
     (let ((key-seq (concat cmd-key key)))
-      (define-key modalka-mode-map key-seq (lambda (target) (interactive "c")
+      (define-key modalka-mode-map key-seq (lambda (target)
+                                             (interactive "c")
+                                             (setq bt/repeat-cmd key-seq)
+                                             (setq bt/repeat-arg (string target))
                                              (save-excursion
                                                (set-mark-command nil)
                                                (funcall search target)
@@ -759,7 +772,7 @@
 
   :bind
   (:map my-keys-minor-mode-map
-        ("M-$" . 'bt/escape) ("<f8>" . 'bt/full-save)
+        ("M-$" . 'bt/normal) ("<f8>" . 'bt/full-save)
         ;; ("M-SPC" . 'bt/m-x-menu)
         ("M-+" . 'bt/autocomplete)
 
@@ -768,21 +781,23 @@
         ("C-x z" . 'bt/noop)
 
         ("C-M-q" . 'bt/noop) ("C-M-w" . 'bt/noop) ("C-M-b" . 'bt/noop) ("C-M-p" . 'bt/noop) ("C-M-f" . 'bt/noop) ("C-M-a" . 'bt/noop) ("C-M-r" . 'bt/noop) ("C-M-s" . 'bt/noop) ("C-M-t" . 'bt/noop)
-        ("C-M-g" . 'bt/noop) ("C-M-x" . 'bt/noop) ("C-M-c" . 'bt/noop) ("C-M-d" . 'bt/noop) ("C-M-v" . 'bt/noop) ("C-M-z" . 'bt/noop) ("C-M-l" . 'bt/noop) ("C-M-u" . 'bt/noop) ("C-M-y" . 'bt/noop)
+        ("C-M-g" . 'bt/noop) ("C-M-x" . 'bt/noop) ("C-M-c" . 'bt/noop) ("C-M-d" . 'bt/noop) ("C-M-v" . 'bt/noop) ("C-M-z" . 'bt/noop) ("C-M-l" . 'bt/noop)                      ("C-M-y" . 'bt/noop)
         ("C-M-h" . 'bt/noop) ("C-M-n" . 'bt/noop) ("C-M-e" . 'bt/noop) ("C-M-i" . 'bt/noop) ("C-M-o" . 'bt/noop) ("C-M-j" . 'bt/noop) ("C-M-k" . 'bt/noop) ("C-M-m" . 'bt/noop)
+        ("C-M-u" . 'bt/window-undo)
+        ("M-;" . 'bt/window-redo)
 
         ("M-&" . 'bt/fold) ("M-]" . 'bt/unfold)
         ("M-{" . 'bt/search-project) ("M-}" . 'bt/regex-search-project)
-        ("M-;" . 'bt/noop)
+        ;; ("M-;" . 'bt/noop)
 
         ("M-q" . 'bt/noop) ("M-Q" . 'bt/noop)
         ("M-w" . 'bt/wipe-line) ("M-W" . 'bt/noop) ("C-w" . 'bt/wipe-eol)
-        ("M-b" . 'bt/bw-wipe-word) ("M-B" . 'bt/noop) ("C-b" . 'bt/bw-wipe-word)
+        ("M-b" . 'bt/become-line) ("M-B" . 'bt/noop) ("C-b" . 'bt/become-eol)
         ("M-p" . 'bt/paste-fmt) ("M-P" . 'bt/paste-raw) ("C-p" . 'bt/paste-eol)
-        ("M-f" . 'bt/wipe-word) ("M-F" . 'bt/noop) ("C-f" . 'bt/wipe-word)
+        ("M-f" . 'bt/flip-flop) ("M-F" . 'bt/noop) ("C-f" . 'bt/flip-flop)
 
         ("M-a" . 'bt/add) ("M-A" . 'bt/add-bov) ("C-a" . 'bt/add-eol)
-        ("M-r" . 'bt/replace-line) ("M-R" . 'bt/noop) ("C-r" . 'bt/replace-eol)
+        ("M-r" . 'bt/repeat-command) ("M-R" . 'bt/noop) ("C-r" . 'bt/repeat-command)
         ("M-s" . 'bt/select) ("M-S" . 'bt/select-line) ("C-s" . 'bt/select-eol)
         ("M-t" . 'bt/trade-line) ("M-T" . 'bt/noop) ("C-t" . 'bt/trade-eol)
         ;; ("M-g" . 'bt/graft) ("M-G" . 'bt/noop)
@@ -806,7 +821,7 @@
         ("M-l" . 'bt/bw-bow) ("M-L" . 'bt/bw-boW) ("C-l" . 'bt/recenter)
         ("M-u" . 'bt/undo) ("M-U" . 'bt/undo-tree) ("C-u" . 'bt/undo)
         ("M-y" . 'bt/bow) ("M-Y" . 'bt/boW) ("C-y" . 'bt/noop)
-        ("M-:" . 'bt/recenter)
+        ("M-:" . 'bt/redo)
 
         ("M-h" . 'bt/left) ("C-h" . 'bt/bw-drag)
         ("M-n" . 'bt/down) ("C-n" . 'bt/drag-line)
@@ -843,18 +858,17 @@
         ("{" . 'bt/search-project) ("}" . 'bt/regex-search-project)
         (";" . 'bt/noop)
 
-        ("ql" . 'bt/go-to-buffer)
-        ("q'" . 'bt/search-for-file)
-        ("qu" . 'bt/window-undo)
-        ("qq" . 'bt/quit-window)
-        ("qw" . 'bt/whole-window)
-        ("qd" . 'bt/dired)
-        ("qp" . 'bt/quit-popups)
+        ("q'" . 'bt/go-to-buffer)
+        ("qo" . 'bt/open-file)
+        ("q DEL" . 'bt/quit-window)
+        ("qm" . 'bt/maximize)
+        ("q SPC" . 'bt/dired)
+        ;; ("qp" . 'bt/quit-popups)
 
-        ("q M-h" . 'bt/split-left)
-        ("q M-n" . 'bt/split-down)
-        ("q M-e" . 'bt/split-up)
-        ("q M-i" . 'bt/split-right)
+        ("qH" . 'bt/split-left)
+        ("qN" . 'bt/split-down)
+        ("qE" . 'bt/split-up)
+        ("qI" . 'bt/split-right)
 
         ("qh" . 'bt/switch-window-left)
         ("qn" . 'bt/switch-window-down)
@@ -862,12 +876,12 @@
         ("qi" . 'bt/switch-window-right)
 
         ("W" . 'bt/noop)
-        ("b" . 'bt/bw-wipe-word) ("B" . 'bt/noop)
+        ("b" . 'bt/become) ("B" . 'bt/noop)
         ("p" . 'bt/paste-fmt) ("P" . 'bt/paste-raw)
-        ("f" . 'bt/wipe-word) ("F" . 'bt/noop)
+        ("f" . 'bt/flip-flop) ("F" . 'bt/noop)
 
         ("a" . 'bt/add) ("A" . 'bt/add-bov)
-        ("R" . 'bt/noop)
+        ("r" . 'bt/repeat-command) ("R" . 'bt/noop)
         ("s" . 'bt/select) ("S" . 'bt/select-line)
         ("T" . 'bt/noop)
         ("g" . 'bt/graft) ("G" . 'bt/noop)
@@ -876,6 +890,7 @@
 
         ;; help
         ("/ SPC" . 'help-for-help)
+        ("/m" . 'bt/help-messages)
         ("/k" . 'bt/help-key)
         ("//k" . 'bt/help-all-keys)
         ("/'" . 'bt/help-search)
@@ -886,8 +901,12 @@
         ("SPC s" . 'bt/reselect)
 
         ;; command
+        ("SPC g" . 'bt/git)
         ("SPC n" . 'bt/note)
         ("SPC m" . 'push-mark-command)
+        ("SPC r" . 'bt/start-macro)
+        ("SPC M-$" . 'bt/end-macro)
+        ("SPC x" . 'bt/run-macro)
         ("SPC (" . 'bt/eval-expr) ("SPC )" . 'bt/eval-inline)
 
         ("," . 'bt/m-x-menu) ("<" . 'bt/noop)
@@ -912,7 +931,7 @@
         ("l" . 'bt/bw-bow) ("L" . 'bt/bw-boW)
         ("u" . 'bt/undo) ("U" . 'bt/undo-tree)
         ("y" . 'bt/bow) ("Y" . 'bt/boW)
-        (":" . 'bt/recenter)
+        (":" . 'bt/redo)
 
         ("<deletechar>" . 'bt/del)
 
