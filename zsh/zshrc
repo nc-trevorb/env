@@ -84,20 +84,21 @@ bindkey -e                                       # use emacs key bindings
 bindkey '^[[Z' reverse-menu-complete             # shift-tab to cycle backwards
 bindkey "^[[3~" delete-char                      # make delete key work
 bindkey "^[3;5~" delete-char                     # make delete key work
-bindkey "^U" backward-kill-line                  # C-u acts like bash
+# bindkey "^U" backward-kill-line                  # C-u acts like bash
 autoload -U select-word-style
 select-word-style bash
 
 bindkey '^b' backward-kill-word
 bindkey '^f' kill-word
 bindkey '^p' yank
-bindkey "^'" redo
+bindkey "^'" history-incremental-search-backward
+bindkey "^:" redo
 bindkey '^u' undo
 bindkey '^v' delete-char-or-list
 bindkey '^t' kill-line
 bindkey '^w' kill-line
 
-bindkey '^[:' history-incremental-search-backward
+bindkey "^['" history-incremental-search-backward
 bindkey '^[N' history-incremental-search-forward
 bindkey '^[E' history-incremental-search-backward
 bindkey '^[h' backward-char
@@ -112,8 +113,12 @@ bindkey '^[-' end-of-line
 
 bindkey '^[w' kill-whole-line
 bindkey '^[t' kill-whole-line
-bindkey "^['" redo
+bindkey "^[:" redo
 bindkey '^[u' undo
+bindkey '^[<' reset-prompt
+
+# can't be escape char
+# stty intr ^[<
 
 setopt LOCAL_OPTIONS # allow functions to have local options
 setopt LOCAL_TRAPS   # allow functions to have local traps

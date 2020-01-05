@@ -156,30 +156,18 @@
   ;; (defun bt/to-search-start ()
   ;;   (bt/mark-jump ?M))
 
-  (defun bt/exchange ()
+  (defalias 'bt/exchange-regex 'replace-regexp)
+  (defalias 'bt/exchange 'replace-string)
+
+  (defun bt/query-exchange-regex ()
     (interactive)
-    (if current-prefix-arg
-        (call-interactively 'replace-regexp)
-      (call-interactively 'replace-string)))
+    (let ((scroll-conservatively 0))
+      (call-interactively 'query-replace-regexp)))
 
   (defun bt/query-exchange ()
     (interactive)
     (let ((scroll-conservatively 0))
-      (if current-prefix-arg
-          (call-interactively 'query-replace-regexp)
-        (call-interactively 'query-replace))))
-
-  ;; (defun bt/cursor-to-middle ()
-  ;;   (interactive)
-  ;;   (recenter-top-bottom))
-
-  ;; (defun bt/cursor-to-top ()
-  ;;   (interactive)
-  ;;   (recenter-top-bottom 0))
-
-  ;; (defun bt/cursor-to-bottom ()
-  ;;   (interactive)
-  ;;   (recenter-top-bottom -1))
+      (call-interactively 'query-replace)))
 
   ;; (defun bt/mark-set (c)
   ;;   (interactive "cset mark: ")
@@ -187,8 +175,8 @@
 
   (defalias 'bt/recenter 'recenter-top-bottom)
 
-  ;; (defalias 'bt/mark-set 'point-to-register)
-  ;; (defalias 'bt/mark-jump 'jump-to-register)
+  (defalias 'bt/bookmark 'point-to-register)
+  (defalias 'bt/find-bookmark 'jump-to-register)
 
   (defalias 'bt/rect-wipe 'kill-rectangle)
   (defalias 'bt/rect-trade 'string-rectangle)
@@ -766,7 +754,8 @@
   ;; ("C-TAB" . "M-+")
   ;; ("" . "M-_")
   ;; ("" . "M-=")
-  ;; ("S-SPC" . "M-<")
+  ;; ("M-C-c" . "C-c")
+  ;; ("C-c" . "M-<")
   ;; ("C-/" . "M-?")
   ;; ("M-<deletechar>" . "M-d")
 
@@ -790,7 +779,25 @@
         ("M-{" . 'bt/search-project) ("M-}" . 'bt/regex-search-project)
         ;; ("M-;" . 'bt/noop)
 
-        ("M-q" . 'bt/noop) ("M-Q" . 'bt/noop)
+        ("M-Q" . 'bt/noop)
+        ("M-q M-DEL RET" . 'save-buffers-kill-terminal)
+        ("M-q '" . 'bt/go-to-buffer)
+        ("M-q o" . 'bt/open-file)
+        ("M-q DEL" . 'bt/quit-window)
+        ("M-q M-m" . 'bt/maximize)
+        ("M-q SPC" . 'bt/dired)
+        ;; ("qp" . 'bt/quit-popups)
+
+        ("M-q H" . 'bt/split-left)
+        ("M-q N" . 'bt/split-down)
+        ("M-q E" . 'bt/split-up)
+        ("M-q I" . 'bt/split-right)
+
+        ("M-q M-h" . 'bt/switch-window-left)
+        ("M-q M-n" . 'bt/switch-window-down)
+        ("M-q M-e" . 'bt/switch-window-up)
+        ("M-q M-i" . 'bt/switch-window-right)
+
         ("M-w" . 'bt/wipe-line) ("M-W" . 'bt/noop) ("C-w" . 'bt/wipe-eol)
         ("M-b" . 'bt/become-line) ("M-B" . 'bt/noop) ("C-b" . 'bt/become-eol)
         ("M-p" . 'bt/paste-fmt) ("M-P" . 'bt/paste-raw) ("C-p" . 'bt/paste-eol)
@@ -805,7 +812,7 @@
         ("M-/" . 'bt/help) ("M-?" . 'bt/help)
         ("M-," . 'bt/m-x-menu) ("M-<" . 'bt/noop) ("M-*" . 'bt/m-x-menu)
         ;; ("M-x" . 'bt/exchange) ("M-X" . 'bt/exchange-exact)
-        ("M-c" . 'bt/copy-line) ("M-C" . 'bt/copy-line) ("C-M-c" . 'bt/copy-eol)
+        ("M-c" . 'bt/copy-line) ("M-C" . 'bt/copy-line) ("M-<" . 'bt/copy-eol)
         ("M-d" . 'bt/m-del) ("M-D" . 'bt/dupe-line) ("C-d" . 'bt/dupe-eol)
         ("M-v" . 'bt/vanish) ("M-V" . 'bt/noop) ("C-v" . 'bt/vanish)
 
@@ -858,6 +865,8 @@
         ("{" . 'bt/search-project) ("}" . 'bt/regex-search-project)
         (";" . 'bt/noop)
 
+        ("q M-DEL RET" . 'save-buffers-kill-terminal)
+
         ("q'" . 'bt/go-to-buffer)
         ("qo" . 'bt/open-file)
         ("q DEL" . 'bt/quit-window)
@@ -876,7 +885,7 @@
         ("qi" . 'bt/switch-window-right)
 
         ("W" . 'bt/noop)
-        ("b" . 'bt/become) ("B" . 'bt/noop)
+        ("B" . 'bt/noop)
         ("p" . 'bt/paste-fmt) ("P" . 'bt/paste-raw)
         ("f" . 'bt/flip-flop) ("F" . 'bt/noop)
 
@@ -899,14 +908,17 @@
         ("SPC u" . 'bt/undo-tree)
         ("SPC p" . 'bt/paste-from-history)
         ("SPC s" . 'bt/reselect)
+        ("SPC x" . 'bt/exchange-regex)
+        ("SPC X" . 'bt/query-exchange-regex)
 
         ;; command
+        ("SPC b" . 'bt/bookmark)
+        ("SPC f" . 'bt/find-bookmark)
         ("SPC g" . 'bt/git)
         ("SPC n" . 'bt/note)
-        ("SPC m" . 'push-mark-command)
-        ("SPC r" . 'bt/start-macro)
-        ("SPC M-$" . 'bt/end-macro)
-        ("SPC x" . 'bt/run-macro)
+        ("SPC m" . 'bt/start-macro)
+        ("SPC M" . 'bt/end-macro)
+        ("SPC RET" . 'bt/run-macro)
         ("SPC (" . 'bt/eval-expr) ("SPC )" . 'bt/eval-inline)
 
         ("," . 'bt/m-x-menu) ("<" . 'bt/noop)
@@ -924,7 +936,7 @@
         ("=p" . 'bt/rect-paste)
         ("j" . 'bt/join-line-below) ("J" . 'bt/join-line-above)
 
-        ("`" . 'bt/noop) ("~" . 'helm-all-mark-rings)
+        ("`" . 'pop-global-mark) ("~" . 'helm-all-mark-rings)
         ("(" . 'pop-to-mark-command) (")" . 'bt/cycle-spacing)
 
         ("z" . 'bt/bol) ("Z" . 'bt/noop)
@@ -956,7 +968,7 @@
 
   (add-hook 'post-command-hook
             (lambda ()
-              (let ((color (cond (modalka-mode '("brightblack" . "green"))
+              (let ((color (cond (modalka-mode '("brightblack" . "colour240"))
                                  (t '("brightblack" . "red")))))
                 (set-face-foreground 'mode-line (car color))
                 (if (featurep 'linum) (set-face-foreground 'linum (cdr color)))

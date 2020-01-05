@@ -57,20 +57,21 @@
   (setq-default mode-line-format
                 (list
                  "      "
-         '(:eval (when buffer-read-only
-                   (propertize "RO "
-                               'face 'error)))
+                 '(:eval (when buffer-read-only
+                           (propertize "RO "
+                                       'face 'error)))
+                 'mode-line-misc-info ;; for org timer
 
-         "%b:%l:%C " ;; buffer name : line number : column number
+                 "%b:%l:%C " ;; buffer name : line number : column number
 
-         '(:eval (when (buffer-modified-p)
-                   (propertize " [+]"
-                               'face 'font-lock-warning-face)))
+                 '(:eval (when (buffer-modified-p)
+                           (propertize " [+]"
+                                       'face 'font-lock-warning-face)))
 
-         " [%o] " ;; scroll percent
+                 " [%o] " ;; scroll percent
 
-         'mode-line-modes
-         ))
+                 'mode-line-modes
+                 ))
 
 
  ;;; startup settings
@@ -298,8 +299,8 @@
   (use-package magit :defer t
     :bind
     (:map my-keys-minor-mode-map
-     ("M-# C-c" . 'with-editor-finish)
-     ("M-# C-q" . 'with-editor-cancel)
+     ("M-# M-$" . 'with-editor-finish)
+     ("M-# C-x" . 'with-editor-cancel)
 
      :map magit-mode-map
      ("e" . 'magit-section-backward)
@@ -364,7 +365,7 @@
     (defun bt/org-insert-todo ()
       (interactive)
       (bt/org-insert-heading)
-      (org-todo "{ }"))
+      (org-todo "{todo}"))
 
     (defun bt/org-add-todo-counter ()
       (interactive)
@@ -372,7 +373,7 @@
       (org-todo "")
       (insert " [0/0]")
       (org-ctrl-c-ctrl-c)
-      (org-todo "{ }"))
+      (org-todo "{todo}"))
 
     (defun bt/org-full-save ()
       (interactive)
@@ -399,14 +400,73 @@
       (setq bt/org-hide-level 1)
       (outline-hide-sublevels bt/org-hide-level))
 
+    ;; (defalias 'bt/table-view 'org-columns)
+    (defalias 'bt/clock-in 'org-clock-in)
+    (defalias 'bt/clock-out 'org-clock-out)
+    (defalias 'bt/clock-cancel 'org-clock-cancel)
+    ;; (defalias 'bt/table-contents 'org-columns-content)
+    (defun bt/refresh-table ()
+      (interactive)
+      (call-interactively 'org-columns-redo)
+      (call-interactively 'org-columns-content)
+      )
+
+    (defun bt/table-begin ()
+      (interactive)
+      (bt/clock-in)
+      (setq current-prefix-arg '(4))      ;; C-u
+      (org-columns-todo))
+
+    (defun bt/table-finish ()
+      (interactive)
+      (bt/clock-out)
+      (setq current-prefix-arg '(4))      ;; C-u
+      (org-columns-todo))
+
+    (defun bt/set-todo ()
+      (interactive)
+      (setq current-prefix-arg '(4))      ;; C-u
+      (org-columns-todo))
+
+    (defun bt/table-view ()
+      (interactive)
+      (save-excursion
+        (bt/bob) ;; applies to entire file, using default COLUMNS
+        (call-interactively 'org-columns)
+        (call-interactively 'org-columns-content))
+
+      (bind-key "n" 'bt/down org-columns-map)
+      (bind-key "e" 'bt/up org-columns-map)
+
+      (bind-key "[" 'org-columns-previous-allowed-value org-columns-map)
+      (bind-key "]" 'org-columns-next-allowed-value org-columns-map)
+
+      (bind-key "H" 'org-columns-previous-allowed-value org-columns-map)
+      (bind-key "N" 'org-columns-next-allowed-value org-columns-map)
+      (bind-key "E" 'bt/up org-columns-map)
+      (bind-key "I" 'bt/up org-columns-map)
+
+      (bind-key "t" 'bt/set-todo org-columns-map)
+      (bind-key "b" 'bt/table-begin org-columns-map)
+      (bind-key "f" 'bt/table-finish org-columns-map)
+
+      (bind-key "c" nil org-columns-map)
+      (bind-key "cc" 'org-clock-jump-to-current-clock org-columns-map)
+      (bind-key "ci" 'bt/clock-in org-columns-map)
+      (bind-key "co" 'bt/clock-out org-columns-map)
+
+      (bind-key "r" 'bt/refresh-table org-columns-map)
+      (bind-key "G" 'bt/refresh-table org-columns-map)
+      )
+
     ;; iterm remaps C-; to M-#
     :bind
     (:map modalka-mode-map
-     ("M-H" . 'org-backward-heading-same-level)
-     ("M-I" . 'org-forward-heading-same-level)
-     ("M-P" . 'outline-up-heading) ;; parent
-     ("M-E" . 'outline-previous-visible-heading)
-     ("M-N" . 'outline-next-visible-heading)
+     ;; ("M-H" . 'org-backward-heading-same-level)
+     ;; ("M-I" . 'org-forward-heading-same-level)
+     ;; ("M-P" . 'outline-up-heading) ;; parent
+     ;; ("M-E" . 'outline-previous-visible-heading)
+     ;; ("M-N" . 'outline-next-visible-heading)
      ("m" . 'outline-previous-visible-heading)
      ("." . 'outline-next-visible-heading)
 
@@ -419,7 +479,17 @@
      ("[" . 'bt/dec-org-hiding)
      ("]" . 'bt/inc-org-hiding)
 
+     ;; :map org-columns-map
+     ;; ("n" . 'bt/down)
+     ;; ("e" . 'bt/up)
+
      :map org-mode-map
+     ("M-H" . 'org-backward-heading-same-level)
+     ("M-I" . 'org-forward-heading-same-level)
+     ("M-P" . 'outline-up-heading) ;; parent
+     ("M-E" . 'outline-previous-visible-heading)
+     ("M-N" . 'outline-next-visible-heading)
+
      ("M-# M-l" . 'bt/org-journal-entry)
      ("M-# i d" . 'bt/org-insert-date)
      ("M-# i t" . 'bt/org-insert-datetime)
@@ -433,14 +503,20 @@
      ("M-# M-h" . 'bt/org-insert-heading)
      ("M-# M-m" . 'bt/org-insert-todo)
 
-     ("M-# M-c" . 'bt/org-add-todo-counter)
-     ("M-# M-t" . (lambda () (interactive) (org-todo "{ }")))
-     ("M-# M-b" . (lambda () (interactive) (org-todo "{blocked}")))
-     ("M-# M-p" . (lambda () (interactive) (org-todo "{plan}")))
-     ("M-# M-d" . (lambda () (interactive) (org-todo "{X}")))
-     ("M-# M-s" . (lambda () (interactive) (org-todo "{skip}")))
-     ("M-# M-f" . (lambda () (interactive) (org-todo "{followup}")))
-     ("M-# M-SPC" . (lambda () (interactive) (org-todo "")))
+     ("M-# M-t" . 'bt/table-view)
+     ("M-# c i" . 'bt/clock-in)
+     ("M-# c o" . 'bt/clock-out)
+     ("M-# c DEL" . 'bt/clock-cancel)
+     ;; ("M-# M-c" . 'bt/org-add-todo-counter)
+     ;; ("M-# M-t" . (lambda () (interactive) (org-todo "{ }")))
+     ;; ("M-# M-b" . (lambda () (interactive) (org-todo "{blocked}")))
+     ;; ("M-# M-p" . (lambda () (interactive) (org-todo "{plan}")))
+     ;; ("M-# M-d" . (lambda () (interactive) (org-todo "{X}")))
+     ;; ("M-# M-s" . (lambda () (interactive) (org-todo "{skip}")))
+     ;; ("M-# M-f" . (lambda () (interactive) (org-todo "{followup}")))
+     ;; ("M-# M-SPC" . (lambda () (interactive) (org-todo "")))
+
+     ("M-# c o" . 'bt/clock-out)
 
      ("M-# M-(" . 'org-promote-subtree)
      ("M-# M-)" . 'org-demote-subtree)
@@ -455,22 +531,39 @@
 
     :config
     (setq org-todo-keywords
-          '((sequence "{ }" "{blocked}" "{plan}" "|" "{X}" "{skip}" "{followup}")))
+          '((sequence "{todo}"
+                      "{now}"
+                      "{wait}"
+                      "{plan}"
+                      "|"
+                      "{done}"
+                      "{skip}"
+                      )))
 
     (setq org-startup-indented t)      ;; indent tasks and only show one star
     (setq org-log-done 'time)          ;; timestamp when finishing a task
     (setq org-catch-invisible-edits t) ;; don't allow edits to collapsed parts of a buffer
     ;; (setq org-startup-folded 'content) ;; show all headings at startup
     (setq org-enforce-todo-dependencies t) ;; can't finish a task with unfinished children
-    (setq org-blank-before-new-entry nil) ;; no blank line between heading for org-metareturn
+    ;; (setq org-blank-before-new-entry nil) ;; no blank line between heading for org-metareturn
+    (setq org-blank-before-new-entry '((heading . 't)
+                                       (plain-list-item . nil)))
     (setq org-ellipsis " [...]")
     (setq org-archive-location "~/org/archives/archive.org::* From %s")
-    (setq org-agenda-files '("~/org/calendar.org" "~/org/projects/"))
+    (setq org-agenda-files '("~/org/calendar.org"))
 
+    ;; ("n" . 'bt/down)
+    ;; ("e" . 'bt/up)
     (setq org-agenda-time-grid
           '((daily today require-timed)
             (600 800 1000 1200 1400 1600 1800 2000 2200 )
             "      " "──────────────────────────"))
+
+    (setq org-clock-mode-line-total 'current)
+    (setq org-clock-string-limit 40)
+    (setq org-columns-default-format "%30ITEM(Task) %7TODO(state) %CLOCKSUM(spent) %Effort(est.){:}")
+    (add-to-list 'org-global-properties
+                 '("Effort_ALL" . "0:05 0:10 0:15 0:20 0:25 0:30 0:40 0:45 1:00 1:15 1:30 2:00"))
 
     (add-to-list 'org-structure-template-alist '("r" "#+BEGIN_SRC ruby\n?\n#+END_SRC"))
     (add-to-list 'org-structure-template-alist '("o" "#+BEGIN_SRC ocaml\n?\n#+END_SRC"))

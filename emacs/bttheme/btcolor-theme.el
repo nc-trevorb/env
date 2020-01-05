@@ -61,7 +61,7 @@ Also bind `class' to ((class color) (min-colors 89))."
 
    `(success ((t (:foreground ,green :weight bold))))
    `(warning ((t (:foreground ,red :weight bold))))
-   `(error ((t (:foreground "color-124" :weight bold))))
+   `(error ((t (:background "color-124" :weight bold))))
 
    `(whitespace-newline ((t (:foreground ,black :background ,black))))
    `(whitespace-trailing ((t (:foreground ,darkgray :background ,darkgray))))
