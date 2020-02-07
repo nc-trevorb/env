@@ -17,3 +17,5 @@ tmux new-window -t dev:9 -n 'org' -c "${HOME}/org"
 tmux send-keys 'e t.org' Enter
 tmux split-window -h -p 30
 tmux send-keys 'd ~/org' Enter C-l 't' Enter
+
+tmux select-pane -t 1

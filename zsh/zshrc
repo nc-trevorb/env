@@ -109,7 +109,7 @@ bindkey '^[l' backward-word
 bindkey '^[y' forward-word
 bindkey '^[o' forward-word
 bindkey '^[z' beginning-of-line
-bindkey '^[-' end-of-line
+bindkey "^[-" end-of-line
 
 bindkey '^[w' kill-whole-line
 bindkey '^[t' kill-whole-line
@@ -275,3 +275,4 @@ function refile_day() {
 test -r /home/vagrant/.opam/opam-init/init.zsh && . /home/vagrant/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
 
 TZ='America/Denver'; export TZ
+bindkey "^[-" end-of-line

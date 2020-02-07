@@ -140,10 +140,28 @@
     (re-search-forward whitespace)
     (bt/left))
 
+  ;; (defun bt/deadgrep-app ()
+  ;;   (interactive)
+  ;;   (let ((default-directory (concat (projectile-project-root) "/app")))
+  ;;     (call-interactively 'bt/search-project)))
+
+  ;; (defun bt/deadgrep-lib ()
+  ;;   (interactive)
+  ;;   (let (default-directory "lib")
+  ;;     (call-interactively 'bt/search-project)))
+
   (defalias 'bt/search 'isearch-forward-regexp)
   (defalias 'bt/search-project 'deadgrep)
+  ;; (defalias 'bt/search-project-app 'bt/deadgrep-app)
+  ;; (defalias 'bt/search-project-lib 'bt/deadgrep-lib)
+  ;; (defalias 'bt/search-project-spec 'bt/deadgrep-spec)
 
   (defun bt/regex-search-project ()
+    (interactive)
+    (setq deadgrep--search-type 'regexp)
+    (call-interactively 'bt/search-project))
+
+  (defun bt/search-project-app ()
     (interactive)
     (setq deadgrep--search-type 'regexp)
     (call-interactively 'bt/search-project))
@@ -198,7 +216,7 @@
 
   (defun bt/note (s)
     (interactive "snote: ")
-    (let* ((org-file "/home/vagrant/org/inbox.org")
+    (let* ((org-file "~/org/inbox.org")
            (padded-output (shell-command-to-string (concat "cat " org-file " | wc -l")))
            (output (projectile-trim-string padded-output)))
       (if (string= s "count")
@@ -655,6 +673,80 @@
     (bt/down)
     (bt/join-line-above))
 
+  (defun bt/appserver-github-url (&optional start-line end-line)
+    (interactive)
+    (let ((url (replace-regexp-in-string "/Users/trevorb/code/appserver" "https://github.com/BLC/rails/blob/master" (buffer-file-name)))
+          (start-line-suffix (concat "#L" start-line))
+          (end-line-suffix (concat "-L" end-line))
+          )
+      (if (null start-line)
+          url
+        (if (null end-line)
+            (concat url start-line-suffix)
+          (concat url start-line-suffix end-line-suffix)))))
+
+  (defun bt/wip-commit ()
+    (interactive)
+    (shell-command "wip"))
+
+  (defun bt/pbcopy ()
+    (interactive)
+    (shell-command-on-region (region-beginning) (region-end) "pbcopy")
+    (deactivate-mark))
+
+  (defun bt/pbcopy-str (s)
+    (interactive)
+    (let ((s (format "echo -n \"%s\" | pbcopy" s)))
+      (shell-command s)
+      (message "s: ")
+      (message s)
+      ))
+
+  (defun bt/copy-gh-line-number ()
+    (interactive)
+    (bt/pbcopy-str (bt/appserver-github-url (format-mode-line "%l"))))
+
+  (defun bt/open-in-github ()
+    (interactive)
+    (browse-url (bt/appserver-github-url (format-mode-line "%l"))))
+
+  (defun bt/show-filepaths ()
+    (interactive)
+    (let ((buffer-path-from-root
+           (replace-regexp-in-string (regexp-quote (projectile-project-root)) "" (buffer-file-name) nil 'literal)))
+      (message (concat "rel: " (bt/filepath-from-root) "\nabs: " (buffer-file-name)))))
+
+  (defun bt/filepath-from-root ()
+    (replace-regexp-in-string (regexp-quote (projectile-project-root)) "" (buffer-file-name) nil 'literal))
+
+  (defun bt/cp-filepath ()
+    (interactive)
+    (bt/pbcopy-str (bt/filepath-from-root)))
+
+    ;;  (bt/appserver-github-url (format-mode-line "%l"))))
+    ;; (let ((buffer-path-from-root
+    ;;        ))
+    ;;   (message (concat "rel: " buffer-path-from-root "\nabs: " (buffer-file-name)))))
+
+  (defun increment-next-number (&optional arg)
+    "Increment the number forward from point by 'arg'."
+    (interactive "p*")
+    (save-excursion
+      (save-match-data
+        (let (inc-by field-width answer)
+          (setq inc-by (if arg arg 1))
+          (skip-chars-backward "0123456789")
+          (when (re-search-forward "[0-9]+" nil t)
+            (setq field-width (- (match-end 0) (match-beginning 0)))
+            (setq answer (+ (string-to-number (match-string 0) 10) inc-by))
+            (when (< answer 0)
+              (setq answer (+ (expt 10 field-width) answer)))
+            (replace-match (format (concat "%0" (int-to-string field-width) "d")
+                                   answer)))))))
+
+  (defun decrement-next-number (&optional arg)
+    (interactive "p*")
+    (increment-next-number (if arg (- arg) -1)))
 
   ;; directional keys
   (defun bt/define-target-key (i-or-o input-key action target-key)
@@ -755,7 +847,7 @@
   ;; ("" . "M-_")
   ;; ("" . "M-=")
   ;; ("M-C-c" . "C-c")
-  ;; ("C-c" . "M-<")
+  ;; ("C-M-TAB" . "M-<")
   ;; ("C-/" . "M-?")
   ;; ("M-<deletechar>" . "M-d")
 
@@ -764,16 +856,20 @@
         ("M-$" . 'bt/normal) ("<f8>" . 'bt/full-save)
         ;; ("M-SPC" . 'bt/m-x-menu)
         ("M-+" . 'bt/autocomplete)
+        ("M-# M-#" . 'bt/select)
 
-        ("M-RET" . 'bt/newline-above) ("M-@" . 'bt/newline-below)
+        ;; ("C-M-E" . 'bt/uppercase)
+        ;; ("C-M-N" . 'bt/downcase)
+        ;; ("C-M-I" . 'bt/capitalize)
+        ;; ("C-M-O" . 'bt/capitalize)
+
+        ;; ("M-RET" . 'bt/newline-above) fixme: work with org
+        ("M-@" . 'bt/newline-below)
 
         ("C-x z" . 'bt/noop)
 
-        ("C-M-q" . 'bt/noop) ("C-M-w" . 'bt/noop) ("C-M-b" . 'bt/noop) ("C-M-p" . 'bt/noop) ("C-M-f" . 'bt/noop) ("C-M-a" . 'bt/noop) ("C-M-r" . 'bt/noop) ("C-M-s" . 'bt/noop) ("C-M-t" . 'bt/noop)
-        ("C-M-g" . 'bt/noop) ("C-M-x" . 'bt/noop) ("C-M-c" . 'bt/noop) ("C-M-d" . 'bt/noop) ("C-M-v" . 'bt/noop) ("C-M-z" . 'bt/noop) ("C-M-l" . 'bt/noop)                      ("C-M-y" . 'bt/noop)
-        ("C-M-h" . 'bt/noop) ("C-M-n" . 'bt/noop) ("C-M-e" . 'bt/noop) ("C-M-i" . 'bt/noop) ("C-M-o" . 'bt/noop) ("C-M-j" . 'bt/noop) ("C-M-k" . 'bt/noop) ("C-M-m" . 'bt/noop)
-        ("C-M-u" . 'bt/window-undo)
-        ("M-;" . 'bt/window-redo)
+        ("M-(" . 'winner-undo)
+        ("M-)" . 'winner-redo)
 
         ("M-&" . 'bt/fold) ("M-]" . 'bt/unfold)
         ("M-{" . 'bt/search-project) ("M-}" . 'bt/regex-search-project)
@@ -798,6 +894,14 @@
         ("M-q M-e" . 'bt/switch-window-up)
         ("M-q M-i" . 'bt/switch-window-right)
 
+        ("M-g o" . dumb-jump-go-other-window)
+        ("M-g j" . dumb-jump-go)
+        ("M-g b" . dumb-jump-back)
+        ("M-g i" . dumb-jump-go-prompt)
+        ;; ("M-g x" . dumb-jump-go-prefer-external)
+        ;; ("M-g z" . dumb-jump-go-prefer-external-other-window)
+
+
         ("M-w" . 'bt/wipe-line) ("M-W" . 'bt/noop) ("C-w" . 'bt/wipe-eol)
         ("M-b" . 'bt/become-line) ("M-B" . 'bt/noop) ("C-b" . 'bt/become-eol)
         ("M-p" . 'bt/paste-fmt) ("M-P" . 'bt/paste-raw) ("C-p" . 'bt/paste-eol)
@@ -810,9 +914,9 @@
         ;; ("M-g" . 'bt/graft) ("M-G" . 'bt/noop)
 
         ("M-/" . 'bt/help) ("M-?" . 'bt/help)
-        ("M-," . 'bt/m-x-menu) ("M-<" . 'bt/noop) ("M-*" . 'bt/m-x-menu)
+        ("M-," . 'bt/m-x-menu) ("M-*" . 'bt/m-x-menu)
         ;; ("M-x" . 'bt/exchange) ("M-X" . 'bt/exchange-exact)
-        ("M-c" . 'bt/copy-line) ("M-C" . 'bt/copy-line) ("M-<" . 'bt/copy-eol)
+        ("M-c" . 'bt/copy-line) ("M-C" . 'bt/copy-line)
         ("M-d" . 'bt/m-del) ("M-D" . 'bt/dupe-line) ("C-d" . 'bt/dupe-eol)
         ("M-v" . 'bt/vanish) ("M-V" . 'bt/noop) ("C-v" . 'bt/vanish)
 
@@ -821,13 +925,12 @@
 
         ("M-j" . 'bt/join-line-below) ("M-J" . 'bt/join-line-above)
 
-        ("M-`" . 'pop-global-mark) ("M-~" . 'helm-all-mark-rings)
-        ("M-(" . 'pop-to-mark-command) ("M-)" . 'bt/cycle-spacing)
+        ("M-`" . 'pop-to-mark-command) ("M-~" . 'helm-all-mark-rings)
 
-        ("M-z" . 'bt/bol) ("M-Z" . 'bt/noop)
-        ("M-l" . 'bt/bw-bow) ("M-L" . 'bt/bw-boW) ("C-l" . 'bt/recenter)
+        ("M-z" . 'bt/bol)
+        ("M-l" . 'bt/bw-bow) ("C-l" . 'bt/recenter)
         ("M-u" . 'bt/undo) ("M-U" . 'bt/undo-tree) ("C-u" . 'bt/undo)
-        ("M-y" . 'bt/bow) ("M-Y" . 'bt/boW) ("C-y" . 'bt/noop)
+        ("M-y" . 'bt/bow) ("C-y" . 'bt/noop)
         ("M-:" . 'bt/redo)
 
         ("M-h" . 'bt/left) ("C-h" . 'bt/bw-drag)
@@ -841,7 +944,7 @@
         ("M-m" . 'bt/bop) ("M-M" . 'bt/bob)
         ("M-DEL" . 'bt/m-bs)
         ("M-." . 'bt/eop) ("M->" . 'bt/eob)
-        ("M--" . 'bt/eol) ("M-_" . 'bt/eol) ("C-_" . 'bt/eol)
+        ("M--" . 'bt/eol) ("C-_" . 'bt/eol)
 
         ;; :map minibuffer-local-completion-map
         ;; ("C-o" . 'minibuffer-complete)
@@ -871,7 +974,10 @@
         ("qo" . 'bt/open-file)
         ("q DEL" . 'bt/quit-window)
         ("qm" . 'bt/maximize)
-        ("q SPC" . 'bt/dired)
+        ("q)" . 'dumb-jump-go)
+        ("q(" . 'dumb-jump-back)
+        ("q M-)" . 'dumb-jump-go-other-window)
+        ;; ("q M-(" . 'dumb-jump-go-prompt)
         ;; ("qp" . 'bt/quit-popups)
 
         ("qH" . 'bt/split-left)
@@ -883,6 +989,10 @@
         ("qn" . 'bt/switch-window-down)
         ("qe" . 'bt/switch-window-up)
         ("qi" . 'bt/switch-window-right)
+
+        ("q SPC d" . 'bt/dired)
+        ("q SPC s" . 'bt/show-filepaths)
+        ("q SPC c" . 'bt/cp-filepath)
 
         ("W" . 'bt/noop)
         ("B" . 'bt/noop)
@@ -907,6 +1017,7 @@
         ;; modifier
         ("SPC u" . 'bt/undo-tree)
         ("SPC p" . 'bt/paste-from-history)
+        ("SPC c" . 'bt/pbcopy)
         ("SPC s" . 'bt/reselect)
         ("SPC x" . 'bt/exchange-regex)
         ("SPC X" . 'bt/query-exchange-regex)
@@ -915,6 +1026,7 @@
         ("SPC b" . 'bt/bookmark)
         ("SPC f" . 'bt/find-bookmark)
         ("SPC g" . 'bt/git)
+        ("SPC G" . 'bt/open-in-github)
         ("SPC n" . 'bt/note)
         ("SPC m" . 'bt/start-macro)
         ("SPC M" . 'bt/end-macro)
@@ -968,14 +1080,13 @@
 
   (add-hook 'post-command-hook
             (lambda ()
-              (let ((color (cond (modalka-mode '("brightblack" . "colour240"))
+              (let ((color (cond (modalka-mode '("brightblack" . "color-245"))
                                  (t '("brightblack" . "red")))))
                 (set-face-foreground 'mode-line (car color))
                 (if (featurep 'linum) (set-face-foreground 'linum (cdr color)))
                 (set-face-background 'mode-line (cdr color)))))
 
-  (define-key global-map (kbd "C-M-x") ctl-x-map)
+  ;; (define-key global-map (kbd "C-M-x") ctl-x-map)
 
   (add-hook 'post-command-hook 'bt/adjust-selection-hook)
-  (selected-minor-mode)
   )
