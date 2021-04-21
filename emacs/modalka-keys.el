@@ -151,7 +151,12 @@
   ;;     (call-interactively 'bt/search-project)))
 
   (defalias 'bt/search 'isearch-forward-regexp)
-  (defalias 'bt/search-project 'deadgrep)
+  ;; (defalias 'bt/search-project 'deadgrep)
+  (defun bt/search-project ()
+    (interactive)
+    (if (region-active-p)
+        (bt/adjust-selection-for-edit))
+    (call-interactively 'deadgrep))
   ;; (defalias 'bt/search-project-app 'bt/deadgrep-app)
   ;; (defalias 'bt/search-project-lib 'bt/deadgrep-lib)
   ;; (defalias 'bt/search-project-spec 'bt/deadgrep-spec)
@@ -195,6 +200,14 @@
 
   (defalias 'bt/bookmark 'point-to-register)
   (defalias 'bt/find-bookmark 'jump-to-register)
+
+  (defun bt/quick-bookmark ()
+    (interactive)
+    (bt/bookmark ?q))
+
+  (defun bt/quick-find-bookmark ()
+    (interactive)
+    (bt/find-bookmark ?q))
 
   (defalias 'bt/rect-wipe 'kill-rectangle)
   (defalias 'bt/rect-trade 'string-rectangle)
@@ -556,9 +569,29 @@
     (bt/eol)
     (bt/flip-selection))
 
+  (setq bt/toggle-comments-state "showing")
+
+  (defun bt/toggle-comments ()
+    (interactive)
+    (let ((new-state (if (string= bt/toggle-comments-state "showing") "hiding" "showing")))
+      (setq bt/toggle-comments-state new-state)
+      (call-interactively 'hide/show-comments-toggle)
+      (message (format "%s comments..." bt/toggle-comments-state))))
+
   (defun bt/comment ()
     (interactive)
     (whole-line-or-region-comment-dwim nil))
+;;     (if (string= "web-mode" major-mode)
+;;         (progn
+;;           (replace-region-contents (region-beginning)
+;;                                    (region-end)
+;;                                    (lambda ()
+;;                                      (let ((s (buffer-substring (region-beginning) (region-end))))
+;;                                        (replace-regexp-in-string (regexp-quote "
+;; ") "
+;; // " s)))
+;;                                    ))
+;;       (whole-line-or-region-comment-dwim nil)))
 
   (defun bt/comment-par ()
     (interactive)
@@ -667,6 +700,14 @@
     (bt/down)
     (bt/paste-fmt))
 
+  (defun xah-toggle-previous-letter-case ()
+    (interactive)
+    (let ((case-fold-search nil))
+      (cond
+       ((looking-at "[[:lower:]]") (upcase-region (point) (1+ (point))))
+       ((looking-at "[[:upper:]]") (downcase-region (point) (1+ (point)))))
+      ))
+
   (defalias 'bt/join-line-above 'delete-indentation)
   (defun bt/join-line-below ()
     (interactive)
@@ -691,6 +732,7 @@
 
   (defun bt/pbcopy ()
     (interactive)
+    (bt/adjust-selection-for-edit)
     (shell-command-on-region (region-beginning) (region-end) "pbcopy")
     (deactivate-mark))
 
@@ -701,6 +743,20 @@
       (message "s: ")
       (message s)
       ))
+
+  (defun bt/pbcopy-ruby ()
+    (interactive)
+    (let* ((s (buffer-substring (region-beginning) (region-end)))
+           (fix-blocks (replace-regexp-in-string (regexp-quote "|
+") "| " s))
+           (fix-newlines (replace-regexp-in-string (regexp-quote "
+") "; " fix-blocks))
+           (fix-quotes (replace-regexp-in-string (regexp-quote "'") "\"" fix-newlines))
+           (cmd (format "echo -n '%s' | pbcopy" fix-quotes))
+           )
+      (async-shell-command cmd)
+      (message "copied to ruby line")
+      (deactivate-mark)))
 
   (defun bt/copy-gh-line-number ()
     (interactive)
@@ -722,6 +778,10 @@
   (defun bt/cp-filepath ()
     (interactive)
     (bt/pbcopy-str (bt/filepath-from-root)))
+
+  (defun bt/test-file ()
+    (interactive)
+    (bt/pbcopy-str (concat "s test " (bt/filepath-from-root))))
 
     ;;  (bt/appserver-github-url (format-mode-line "%l"))))
     ;; (let ((buffer-path-from-root
@@ -813,9 +873,9 @@
 
   (defun bt/define-until-keys (key action)
     (bt/define-until-key key "u" action 'bt/until)
-    (bt/define-until-key key "b" action 'bt/bw-until)
-    (bt/define-until-key key "U" action 'bt/past)
-    (bt/define-until-key key "B" action 'bt/bw-past))
+    (bt/define-until-key key "l" action 'bt/bw-until)
+    (bt/define-until-key key "y" action 'bt/past)
+    )
 
   (defun bt/chars (string)
     (split-string string "" 'f))
@@ -920,8 +980,9 @@
         ("M-d" . 'bt/m-del) ("M-D" . 'bt/dupe-line) ("C-d" . 'bt/dupe-eol)
         ("M-v" . 'bt/vanish) ("M-V" . 'bt/noop) ("C-v" . 'bt/vanish)
 
+        ("M-;" .'bt/comment)
         ("M-|" . 'bt/comment-par)
-        ("M-\\" .'bt/comment)
+        ("M-\\" .'bt/toggle-comments)
 
         ("M-j" . 'bt/join-line-below) ("M-J" . 'bt/join-line-above)
 
@@ -993,6 +1054,7 @@
         ("q SPC d" . 'bt/dired)
         ("q SPC s" . 'bt/show-filepaths)
         ("q SPC c" . 'bt/cp-filepath)
+        ("q SPC t" . 'bt/test-file)
 
         ("W" . 'bt/noop)
         ("B" . 'bt/noop)
@@ -1003,7 +1065,7 @@
         ("r" . 'bt/repeat-command) ("R" . 'bt/noop)
         ("s" . 'bt/select) ("S" . 'bt/select-line)
         ("T" . 'bt/noop)
-        ("g" . 'bt/graft) ("G" . 'bt/noop)
+        ("g" . 'bt/graft) ("G" . 'xah-toggle-previous-letter-case)
 
         ("?" . 'bt/help)
 
@@ -1018,13 +1080,16 @@
         ("SPC u" . 'bt/undo-tree)
         ("SPC p" . 'bt/paste-from-history)
         ("SPC c" . 'bt/pbcopy)
+        ("SPC r" . 'bt/pbcopy-ruby)
         ("SPC s" . 'bt/reselect)
         ("SPC x" . 'bt/exchange-regex)
         ("SPC X" . 'bt/query-exchange-regex)
 
         ;; command
-        ("SPC b" . 'bt/bookmark)
-        ("SPC f" . 'bt/find-bookmark)
+        ("SPC b" . 'bt/quick-bookmark)
+        ("SPC f" . 'bt/quick-find-bookmark)
+        ("SPC B" . 'bt/bookmark)
+        ("SPC F" . 'bt/find-bookmark)
         ("SPC g" . 'bt/git)
         ("SPC G" . 'bt/open-in-github)
         ("SPC n" . 'bt/note)
@@ -1039,8 +1104,9 @@
         ("D" . 'bt/dupe-line)
         ("v" . 'bt/vanish) ("V" . 'bt/noop)
 
+        (";" .'bt/comment)
         ("|" . 'bt/comment-par)
-        ("\\" .'bt/comment)
+        ("\\" .'bt/toggle-comments)
 
         ("=a" . 'bt/rect-add)
         ("=t" . 'bt/rect-trade)

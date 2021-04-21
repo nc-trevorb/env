@@ -7,6 +7,10 @@
   (package-initialize)
   (set-display-table-slot standard-display-table 'vertical-border (make-glyph-code ?║))
 
+  (setq backup-directory-alist `(("." . "~/.emacs.d/saves")))
+
+  (setq smerge-command-prefix " t")
+
  ;;; custom theme
   (add-to-list 'custom-theme-load-path "~/.emacs.d/bttheme/")
   (load-theme 'btcolor t)
@@ -45,6 +49,7 @@
   (set-default 'truncate-lines t)                         ;; disable word wrap
   (winner-mode 1)                                         ;; undo/redo split layout changes
   (setq echo-keystrokes 0.001)                            ;; like vim's showcmd
+  (setq vc-follow-symlinks nil)
   (setq require-final-newline nil)
   (setq-default show-trailing-whitespace t)
   ;; (add-hook 'before-save-hook 'delete-trailing-whitespace)
@@ -198,6 +203,11 @@
     (global-undo-tree-mode)
     )
 
+  (use-package yaml-mode
+    :config
+    (add-to-list 'auto-mode-alist '("\\.yml\\.example$" . yaml-mode))
+    )
+
   (use-package wdired)
   (use-package dired
     :bind
@@ -223,12 +233,23 @@
     (setq-default scss-compile-at-save nil))
 
   (use-package web-mode :defer t
-    :config
+    :init
     (add-to-list 'auto-mode-alist '("\\.erb$" . web-mode))
     (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
     (add-to-list 'auto-mode-alist '("\\.js$" . web-mode))
+
+    :config
     (setq web-mode-markup-indent-offset 2) ;; html indent
-    (setq web-mode-code-indent-offset 2)) ;; js indent
+    (setq web-mode-code-indent-offset 2) ;; js indent
+    (setq js-indent-level 2) ;; js indent
+
+    ;; single-line comments for js
+    ;; (add-hook 'web-mode-hook (lambda ()
+    ;;                            (setq comment-start "//")
+    ;;                            (setq comment-padding " ")
+    ;;                            (setq comment-end "")))
+                               ;; (setq comment-style 'indent)
+    )
 
   (use-package sh-script :defer t
     :config
@@ -250,11 +271,21 @@
   (use-package ruby-mode :defer t
     :config
     (setq ruby-insert-encoding-magic-comment nil)
+    (setq ruby-align-to-stmt-keywords t) ;; fix indentation for `if`
     ;; (add-to-list 'interpreter-mode-alist '("ruby" . ruby-mode))
     (add-to-list 'auto-mode-alist
                  '("\\.\\(?:cap\\|gemspec\\|irbrc\\|gemrc\\|rake\\|rb\\|ru\\|thor\\)\\'" . ruby-mode))
     (add-to-list 'auto-mode-alist
-                 '("\\(?:Brewfile\\|Vagrantfile\\|Capfile\\|Gemfile\\(?:\\.[a-zA-Z0-9._-]+\\)?\\|[rR]akefile\\)\\'" . ruby-mode)))
+                 '("\\(?:Brewfile\\|Vagrantfile\\|Capfile\\|Gemfile\\(?:\\.[a-zA-Z0-9._-]+\\)?\\|[rR]akefile\\)\\'" . ruby-mode))
+
+    (defun bt/rspec-swoop ()
+      (interactive)
+      (helm-swoop :$query "describe\\ \\|context\\|\\ it\\ \\|_examples")
+      )
+
+    ;; (define-key my-keys-minor-mode-map (kbd "C-M-t") 'bt/rspec-swoop)
+
+    )
 
   (use-package tuareg :defer t
     :config
@@ -331,6 +362,10 @@
       (interactive)
       (magit-run-git-async "submodule" "foreach" "--recursive" "git" "checkout" "."))
 
+    (defun bt/magit-update-latest-timestamp ()
+      (interactive)
+      (magit-run-git-async "commit" "--amend" "--no-edit" "--date" (format-time-string "%Y-%m-%d")))
+
     (defun bt/magit-checkout-last ()
       (interactive)
       (magit-run-git-async "checkout" "-"))
@@ -343,6 +378,14 @@
       (interactive)
       (magit-run-git-async "rebase" "master"))
 
+    (defun bt/magit-open-github-pr ()
+      (interactive)
+      (async-shell-command "gh pr view --web"))
+
+    (defun bt/magit-open-github ()
+      (interactive)
+      (async-shell-command "gh repo view --web"))
+
     (defun bt/new-branch-at-HEAD ()
       (interactive)
       (magit-run-git-async "branch" "HEAD"))
@@ -354,22 +397,33 @@
             magit-insert-local-branches
             magit-insert-tags))
 
-    ;; submodule menu
-    (magit-define-popup-action 'magit-submodule-popup
-                               ?r "Recursive Update" 'so/magit-submodule-update-recursive ?u)
-    (magit-define-popup-action 'magit-submodule-popup
-                               ?c "Recursive Checkout" 'bt/magit-submodule-recursive-checkout ?u)
+    (transient-append-suffix 'magit-submodule "f"
+      '("r" "recursive update" so/magit-submodule-update-recursive))
 
-    ;; branch menu
-    (magit-define-popup-action 'magit-branch-popup
-                               ?m "Checkout master" 'bt/magit-checkout-master ?u)
-    (magit-define-popup-action 'magit-branch-popup
-                               ?l "Checkout last branch" 'bt/magit-checkout-last ?u)
-    (magit-define-popup-action 'magit-branch-popup
-                               ?h "Create new branch at HEAD" 'bt/new-branch-at-HEAD ?u)
+    (transient-append-suffix 'magit-submodule "r"
+      '("c" "recursive checkout" bt/magit-submodule-recursive-checkout))
 
-    (magit-define-popup-action 'magit-rebase-popup
-                               ?m "master" 'bt/magit-rebase-master ?u)
+    (transient-append-suffix 'magit-branch "b"
+      '("m" "master" bt/magit-checkout-master))
+
+    (transient-append-suffix 'magit-branch "b"
+      '("l" "last branch" bt/magit-checkout-last))
+
+    (transient-append-suffix 'magit-rebase "e"
+      '("m" "master" bt/magit-rebase-master))
+
+    (transient-append-suffix 'magit-commit "S"
+      '("t" "update timestamp" bt/magit-update-latest-timestamp))
+
+    (transient-append-suffix 'magit-commit "S"
+      '("t" "update timestamp" bt/magit-update-latest-timestamp))
+
+    ;; open things in github, not submodule related ¯\_(ツ)_/¯
+    (transient-append-suffix 'magit-submodule "c"
+      '("g" "open github" bt/magit-open-github))
+
+    (transient-append-suffix 'magit-submodule "g"
+      '("p" "open PR in github" bt/magit-open-github-pr))
 
     )
 
@@ -457,6 +511,18 @@
     (bt/defun-todo-fn bt/org-done "[DONE]")
     (bt/defun-todo-fn bt/org-skip "[SKIP]")
 
+    (defun bt/org-reset-subtree ()
+      (interactive)
+      (save-excursion
+        (org-mark-subtree)
+        (bt/exchange-regex (regexp-quote "* [DONE]") "* [TODO]" nil (region-beginning) (region-end)))
+      (save-excursion
+        (org-mark-subtree)
+        (bt/exchange-regex (regexp-quote "* [SKIP]") "* [TODO]" nil (region-beginning) (region-end))
+        )
+      (org-ctrl-c-ctrl-c)
+      )
+
     (defun bt/org-finish ()
       (interactive)
       (save-excursion
@@ -504,15 +570,12 @@
       (insert "\n")
       (bt/add))
 
-    (defun bt/org-add-todo-counter ()
+    (defun bt/org-checklist ()
       (interactive)
-      (save-excursion
-        (org-todo "")
-        (bt/org-beginning-of-line)
-        (if (not (= (following-char) ?\[))
-            (insert "[/] "))
-        (bt/org-full-save)
-        ))
+      (org-todo "")
+      (bt/org-beginning-of-line)
+      (insert "[/] ")
+      )
 
     (defun bt/org-full-save ()
       (interactive)
@@ -580,6 +643,18 @@
       (call-interactively 'org-columns-content)
       )
 
+    (defun bt/org-morning ()
+      (interactive)
+      (org-clone-subtree-with-time-shift 1 "+1d")
+      (org-forward-heading-same-level 1)
+      (org-metaup)
+      )
+
+    (defun bt/org-unfinish ()
+      (interactive)
+      (org-clone-subtree-with-time-shift 1 "+1d")
+      )
+
     (defun bt/table-begin ()
       (interactive)
       (bt/clock-in)
@@ -638,11 +713,13 @@
      ("C-M-i" . 'org-forward-heading-same-level)
      ("C-M-u" . 'outline-up-heading)
 
+     ("M-# <f8>" . 'bt/org-full-save)
+
      ;; ("M-&" . 'bt/org-inc-hiding)
      ;; ("M-]" . 'bt/org-dec-hiding)
 
      ("M-<" . 'org-force-cycle-archived)
-     ("C-M-a" . 'bt/org-archive-to-sibling) ;; C-M-:
+     ;; ("C-M-a" . 'bt/org-archive-to-sibling) ;; C-M-:
      ("C-M-l" . 'org-promote-subtree)
      ("C-M-y" . 'org-demote-subtree)
 
@@ -650,35 +727,36 @@
      ("C-M-_" . 'bt/org-insert-child-heading)
      ("M-^" . 'bt/org-insert-timestamp-heading) ;; C-M-return
 
+     ;; ("C-M-f" . 'bt/org-finish)
+     ;; ("C-M-c" . 'bt/org-complete)
+     ;; ("C-M-p" . 'bt/org-plan)
      ("C-M-x" . 'bt/org-clear-todo)
+     ("C-M-r" . 'bt/org-reset-subtree)
      ("C-M-t" . 'bt/org-todo)
      ("C-M-d" . 'bt/org-done)
-     ("C-M-f" . 'bt/org-finish)
-     ;; ("C-M-c" . 'bt/org-complete)
-     ("C-M-p" . 'bt/org-plan)
      ("C-M-w" . 'bt/org-wait)
      ("C-M-s" . 'bt/org-skip)
 
-     ("M-% C-M-a" . 'bt/org-agenda) ;; prefix: C-M-.
+     ("C-M-a" . 'bt/org-agenda)
+     ("C-M-c" . 'bt/org-checklist)
 
      ("M-# M-l" . 'bt/org-journal-entry)
      ("M-# M-i M-l" . 'bt/org-journal-entry)
      ("M-# M-i M-d" . 'bt/org-insert-date)
      ("M-# M-i M-t" . 'bt/org-insert-datetime)
-     ("M-# M-i M-c" . 'bt/org-add-todo-counter)
      ("M-# M-i M-a" . 'bt/org-create-archive)
 
-     ("M-# M-d M-i" . 'bt/org-deadline-insert)
-     ("M-# M-d M-n" . 'bt/org-deadline-now)
-     ("M-# M-s M-i" . 'bt/org-schedule-insert)
-     ("M-# M-s M-n" . 'bt/org-schedule-now)
+     ;; ("M-# M-d M-i" . 'bt/org-deadline-insert)
+     ;; ("M-# M-d M-n" . 'bt/org-deadline-now)
+     ;; ("M-# M-s M-i" . 'bt/org-schedule-insert)
+     ;; ("M-# M-s M-n" . 'bt/org-schedule-now)
 
      ;; ("M-# d" . 'org-deadline)
      ;; ("M-# s" . 'org-schedule)
 
      ;; ("M-# C-a" . 'org-agenda-list)
 
-     ("M-RET" . 'bt/org-insert-note)
+     ;; ("M-RET" . 'bt/org-insert-note)
      ("M-# M-n" . 'bt/org-insert-list-elt)
      ;; ("M-# M-h" . 'bt/org-insert-heading)
      ;; ("M-# M-m" . 'bt/org-insert-todo)
@@ -709,8 +787,8 @@
                              ;; stopped working in :bind
                              (bind-key "k" 'bt/org-beginning-of-line modalka-mode-map)
                              (bind-key ";" 'bt/reset-org-hiding modalka-mode-map)
-                             (bind-key "[" 'bt/org-inc-hiding modalka-mode-map)
-                             (bind-key "]" 'bt/org-dec-hiding modalka-mode-map)
+                             (bind-key "[" 'bt/noop modalka-mode-map)
+                             (bind-key "]" 'bt/noop modalka-mode-map)
                              (bind-key "m" 'outline-previous-visible-heading modalka-mode-map)
                              (bind-key "." 'outline-next-visible-heading modalka-mode-map)
                   )))
@@ -731,34 +809,30 @@
     ;; (setq org-startup-folded 'content) ;; show all headings at startup
     (setq org-enforce-todo-dependencies t) ;; can't finish a task with unfinished children
     (setq org-blank-before-new-entry nil) ;; no blank line between heading for org-metareturn
+    (setq org-hierarchical-todo-statistics nil) ;; count all children for statistics cookies
+
     ;; FIXME only for table mode/files
     ;; (setq org-blank-before-new-entry '((heading . 't)
     ;;                                    (plain-list-item . nil)))
     (setq org-ellipsis " [...]")
     (setq org-archive-location "~/org/archives/archive.org::* From %s")
-    (setq org-agenda-files '("~/org/todo.org"))
+    (setq org-agenda-files '("~/org/calendar.org"))
     (setq org-cycle-level-after-item/entry-creation nil)
+    ;; (setq org-agenda-use-time-grid nil)
     (setq org-agenda-time-grid
           '((daily today require-timed remove-match)
             (
-             ;; 0600
-             ;; 0700
-             ;; 0800
-             ;; 0900
-             ;; 1000
-             ;; 1100
-             ;; 1200
-             ;; 1300
-             ;; 1400
-             ;; 1500
-             ;; 1600
-             ;; 1700
-             ;; 1800
-
-             0759
-             1159
-             1659
-
+             0800
+             0900
+             1000
+             1100
+             1200
+             1300
+             1400
+             1500
+             1600
+             1700
+             1800
              )
             "      " "──────────────────────────"))
 
@@ -809,6 +883,7 @@
     (deactivate-mark))
 
 
+  (load "~/.emacs.d/hide-comnt.el")
   (load "~/.emacs.d/modalka-keys.el")
   (modalka-mode)
   (selected-minor-mode)
@@ -820,8 +895,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   (quote
-    (dumb-jump diminish deadgrep expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode magit jinja2-mode helm-projectile))))
+   '(forge terraform-mode dumb-jump diminish deadgrep expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode jinja2-mode helm-projectile)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
