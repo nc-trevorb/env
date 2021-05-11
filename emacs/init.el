@@ -253,7 +253,9 @@
 
   (use-package sh-script :defer t
     :config
-    (add-to-list 'auto-mode-alist '("zshrc" . shell-script-mode)))
+    (add-to-list 'auto-mode-alist '("\\.zshrc" . shell-script-mode))
+    (add-to-list 'auto-mode-alist '("^zshrc" . shell-script-mode))
+    )
 
   (use-package python :defer t
     :config
@@ -395,7 +397,11 @@
           '(magit-insert-error-header
             magit-insert-branch-description
             magit-insert-local-branches
-            magit-insert-tags))
+            ;; magit-insert-remote-branches
+            ;; magit-insert-tags
+            ))
+
+    (setq magit-revision-insert-related-refs nil)
 
     (transient-append-suffix 'magit-submodule "f"
       '("r" "recursive update" so/magit-submodule-update-recursive))
@@ -424,6 +430,52 @@
 
     (transient-append-suffix 'magit-submodule "g"
       '("p" "open PR in github" bt/magit-open-github-pr))
+
+    )
+
+  (use-package forge
+    :after magit
+    :config
+    (setq auth-sources '("~/.authinfo"))
+    (setq forge-topic-list-limit '(8 . 4))
+    ;; last two args "nil" "t" put section at the bottom
+    (setq magit-status-sections-hook
+          '(
+            magit-insert-status-headers
+
+            magit-insert-merge-log
+
+            magit-insert-rebase-sequence
+            magit-insert-am-sequence
+            magit-insert-sequencer-sequence
+
+            ;; magit-insert-bisect-output
+            ;; magit-insert-bisect-rest
+            ;; magit-insert-bisect-log
+
+            magit-insert-untracked-files
+            magit-insert-unstaged-changes
+            magit-insert-staged-changes
+
+            ;; magit-insert-stashes
+
+            magit-insert-unpushed-to-pushremote
+            ;; magit-insert-unpushed-to-upstream-or-recent
+            ;; magit-insert-unpulled-from-pushremote
+            ;; magit-insert-unpulled-from-upstream
+
+            forge-insert-assigned-pullreqs
+            forge-insert-requested-reviews
+            forge-insert-authored-pullreqs
+            ;; forge-insert-pullreqs
+            ))
+
+    ;; (remove-hook 'magit-status-sections-hook 'forge-insert-pullreqs)
+    ;; (remove-hook 'magit-status-sections-hook 'forge-insert-issues)
+
+    ;; (magit-add-section-hook 'magit-status-sections-hook 'forge-insert-assigned-pullreqs nil t)
+    ;; (magit-add-section-hook 'magit-status-sections-hook 'forge-insert-requested-reviews nil t)
+    ;; (magit-add-section-hook 'magit-status-sections-hook 'forge-insert-authored-pullreqs nil t)
 
     )
 
@@ -855,13 +907,58 @@
                  '("Effort_ALL" . "0:05 0:10 0:15 0:20 0:25 0:30 0:40 0:45 1:00 1:15 1:30 2:00"))
 
     (add-to-list 'org-structure-template-alist '("r" "#+BEGIN_SRC ruby\n?\n#+END_SRC"))
+    (add-to-list 'org-structure-template-alist '("sh" "#+BEGIN_SRC sh\n?\n#+END_SRC"))
     (add-to-list 'org-structure-template-alist '("o" "#+BEGIN_SRC ocaml\n?\n#+END_SRC"))
     ;; (add-to-list 'org-structure-template-alist '("d" "DEADLINE: ?"))
     ;; (add-to-list 'org-structure-template-alist '("s" "SCHEDULED: ?"))
 
-    (add-hook 'before-save-hook 'org-align-all-tags)
+    ;; (add-hook 'before-save-hook 'org-align-all-tags)
     ;; using this as a hook screws up scrolling while undoing
     ;; (add-hook 'before-save-hook 'bt/org-update-all-statistics)
+
+    ;; https://gist.githubusercontent.com/ironchicken/6b5424bc2024b3d0a58a8a130f73c2ee/raw/e397e9bc5d31633efb0f04c6c861693f2c30a7cb/clocktable-by-tag.el
+    ;; (defun gist/clocktable-by-tag/shift-cell (n)
+    ;;   (let ((str ""))
+    ;;     (dotimes (i n)
+    ;;       (setq str (concat str "| ")))
+    ;;     str))
+
+    ;; (defun gist/clocktable-by-tag/insert-tag (params)
+    ;;   (let ((tag (plist-get params :tags)))
+    ;;     (insert "|--\n")
+    ;;     (insert (format "| %s | *Tag time* |\n" tag))
+    ;;     (let ((total 0))
+    ;;       (mapcar
+    ;;        (lambda (file)
+    ;;          (let ((clock-data (with-current-buffer (find-file-noselect file)
+    ;;                              (org-clock-get-table-data (buffer-name) params))))
+    ;;            (when (> (nth 1 clock-data) 0)
+    ;;              (setq total (+ total (nth 1 clock-data)))
+    ;;              (insert (format "| | File *%s* | %.2f |\n"
+    ;;                              (file-name-nondirectory file)
+    ;;                              (/ (nth 1 clock-data) 60.0)))
+    ;;              (dolist (entry (nth 2 clock-data))
+    ;;                (insert (format "| | . %s%s | %s %.2f |\n"
+    ;;                                (org-clocktable-indent-string (nth 0 entry))
+    ;;                                (nth 1 entry)
+    ;;                                (clocktable-by-tag/shift-cell (nth 0 entry))
+    ;;                                (/ (nth 4 entry) 60.0)))))))
+    ;;        (org-agenda-files))
+    ;;       (save-excursion
+    ;;         (re-search-backward "*Tag time*")
+    ;;         (org-table-next-field)
+    ;;         (org-table-blank-field)
+    ;;         (insert (format "*%.2f*" (/ total 60.0)))))
+    ;;     (org-table-align)))
+
+    ;; (defun org-dblock-write:clocktable-by-tag (params)
+    ;;   (insert "| Tag | Headline | Time (h) |\n")
+    ;;   (insert "|     |          | <r>  |\n")
+    ;;   (let ((tags (plist-get params :tags)))
+    ;;     (mapcar (lambda (tag)
+    ;;               (clocktable-by-tag/insert-tag (plist-put (plist-put params :match tag) :tags tag)))
+    ;;             tags)))
+
     )
 
 ;; basic keys
@@ -895,7 +992,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(forge terraform-mode dumb-jump diminish deadgrep expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode jinja2-mode helm-projectile)))
+   '(terraform-mode dumb-jump diminish deadgrep expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode jinja2-mode helm-projectile)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
