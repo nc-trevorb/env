@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-dc org
+cd ~/org
 
 tmux new-window -t org:2 -n 'paste' -c "${HOME}/org"
 tmux send-keys 'e scripts/paste.rb' Enter

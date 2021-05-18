@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: anonymousFunction with close paren / semicolon
+# key: anonc
+# --
+($1) => {
+  $0
+});

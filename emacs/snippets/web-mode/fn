@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# contributor: Jimmy Yuen Ho Wong <wyuenho@gmail.com>
+# name: function
+# key: fn
+# --
+const ${1:functionName} = ($2) => {
+  $0
+}

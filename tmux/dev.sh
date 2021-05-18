@@ -20,7 +20,8 @@
 
 # tmux select-pane -t 1
 
-dc appserver
+cd ~/code/appserver
+
 tmux new-window -t dev:2 -n 'console' -c "${HOME}/code/appserver"
 tmux new-window -t dev:9 -n 'flik' -c "${HOME}/code/appserver"
 tmux send-keys 'flik repl system_test_workflow' Enter

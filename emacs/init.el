@@ -175,8 +175,14 @@
   (use-package whole-line-or-region :diminish :config (whole-line-or-region-mode))
   (use-package expand-region :config (setq expand-region-fast-keys-enabled nil))
 
-  (use-package dumb-jump
+  (use-package yasnippet
+    :diminish (yas-minor-mode . "")
+    :init
+    (setq yas-snippet-dirs '("~/.emacs.d/snippets"))
+    (yas-global-mode 1)
+    )
 
+  (use-package dumb-jump
     :config
     (setq dumb-jump-selector 'helm)
     (setq dumb-jump-force-searcher 'rg)
@@ -380,6 +386,11 @@
       (interactive)
       (magit-run-git-async "rebase" "master"))
 
+    (defun bt/magit-commit-no-verify ()
+      (interactive)
+      (magit-run-git-async "commit" "--no-verify"))
+      
+
     (defun bt/magit-open-github-pr ()
       (interactive)
       (async-shell-command "gh pr view --web"))
@@ -391,6 +402,10 @@
     (defun bt/new-branch-at-HEAD ()
       (interactive)
       (magit-run-git-async "branch" "HEAD"))
+
+    ;; (defun bt/magit-commit-without-hooks ()
+    ;;   (interactive)
+    ;;   (magit-run-git-async "commit" "--no-verify"))
 
     (advice-add 'magit-status :before #'delete-other-windows)
     (setq magit-refs-sections-hook
@@ -421,8 +436,11 @@
     (transient-append-suffix 'magit-commit "S"
       '("t" "update timestamp" bt/magit-update-latest-timestamp))
 
-    (transient-append-suffix 'magit-commit "S"
-      '("t" "update timestamp" bt/magit-update-latest-timestamp))
+    (transient-append-suffix 'magit-commit "c"
+      '("n" "no hooks" bt/magit-commit-no-verify))
+
+    ;; (transient-append-suffix 'magit-commit "c"
+    ;;   '("n" "no hooks" bt/magit-commit-without-hooks))
 
     ;; open things in github, not submodule related ¯\_(ツ)_/¯
     (transient-append-suffix 'magit-submodule "c"
@@ -433,51 +451,51 @@
 
     )
 
-  (use-package forge
-    :after magit
-    :config
-    (setq auth-sources '("~/.authinfo"))
-    (setq forge-topic-list-limit '(8 . 4))
-    ;; last two args "nil" "t" put section at the bottom
-    (setq magit-status-sections-hook
-          '(
-            magit-insert-status-headers
+  ;; (use-package forge
+  ;;   :after magit
+  ;;   :config
+  ;;   (setq auth-sources '("~/.authinfo"))
+  ;;   (setq forge-topic-list-limit '(8 . 4))
+  ;;   ;; last two args "nil" "t" put section at the bottom
+  ;;   (setq magit-status-sections-hook
+  ;;         '(
+  ;;           magit-insert-status-headers
 
-            magit-insert-merge-log
+  ;;           magit-insert-merge-log
 
-            magit-insert-rebase-sequence
-            magit-insert-am-sequence
-            magit-insert-sequencer-sequence
+  ;;           magit-insert-rebase-sequence
+  ;;           magit-insert-am-sequence
+  ;;           magit-insert-sequencer-sequence
 
-            ;; magit-insert-bisect-output
-            ;; magit-insert-bisect-rest
-            ;; magit-insert-bisect-log
+  ;;           ;; magit-insert-bisect-output
+  ;;           ;; magit-insert-bisect-rest
+  ;;           ;; magit-insert-bisect-log
 
-            magit-insert-untracked-files
-            magit-insert-unstaged-changes
-            magit-insert-staged-changes
+  ;;           magit-insert-untracked-files
+  ;;           magit-insert-unstaged-changes
+  ;;           magit-insert-staged-changes
 
-            ;; magit-insert-stashes
+  ;;           ;; magit-insert-stashes
 
-            magit-insert-unpushed-to-pushremote
-            ;; magit-insert-unpushed-to-upstream-or-recent
-            ;; magit-insert-unpulled-from-pushremote
-            ;; magit-insert-unpulled-from-upstream
+  ;;           magit-insert-unpushed-to-pushremote
+  ;;           ;; magit-insert-unpushed-to-upstream-or-recent
+  ;;           ;; magit-insert-unpulled-from-pushremote
+  ;;           ;; magit-insert-unpulled-from-upstream
 
-            forge-insert-assigned-pullreqs
-            forge-insert-requested-reviews
-            forge-insert-authored-pullreqs
-            ;; forge-insert-pullreqs
-            ))
+  ;;           forge-insert-assigned-pullreqs
+  ;;           forge-insert-requested-reviews
+  ;;           forge-insert-authored-pullreqs
+  ;;           ;; forge-insert-pullreqs
+  ;;           ))
 
-    ;; (remove-hook 'magit-status-sections-hook 'forge-insert-pullreqs)
-    ;; (remove-hook 'magit-status-sections-hook 'forge-insert-issues)
+  ;;   ;; (remove-hook 'magit-status-sections-hook 'forge-insert-pullreqs)
+  ;;   ;; (remove-hook 'magit-status-sections-hook 'forge-insert-issues)
 
-    ;; (magit-add-section-hook 'magit-status-sections-hook 'forge-insert-assigned-pullreqs nil t)
-    ;; (magit-add-section-hook 'magit-status-sections-hook 'forge-insert-requested-reviews nil t)
-    ;; (magit-add-section-hook 'magit-status-sections-hook 'forge-insert-authored-pullreqs nil t)
+  ;;   ;; (magit-add-section-hook 'magit-status-sections-hook 'forge-insert-assigned-pullreqs nil t)
+  ;;   ;; (magit-add-section-hook 'magit-status-sections-hook 'forge-insert-requested-reviews nil t)
+  ;;   ;; (magit-add-section-hook 'magit-status-sections-hook 'forge-insert-authored-pullreqs nil t)
 
-    )
+  ;;   )
 
   (use-package org :defer t
     :diminish ('org-indent-mode . "")
@@ -992,7 +1010,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(terraform-mode dumb-jump diminish deadgrep expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode jinja2-mode helm-projectile)))
+   '(yasnippet terraform-mode dumb-jump diminish deadgrep expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode jinja2-mode helm-projectile)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
