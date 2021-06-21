@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: close block
+# key: end
+# --
+});$0

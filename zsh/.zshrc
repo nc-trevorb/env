@@ -1,6 +1,10 @@
 # uncomment this line to enable zsh startup profiling, then run `zprof`
 # zmodload zsh/zprof
 
+function shrug() {
+    echo -n '¯\_(ツ)_/¯' | pbcopy
+}
+
 SHOWTRACE=false
 function trace() {
     if [[ $SHOWTRACE == true ]]; then
@@ -552,7 +556,7 @@ function sshaa() {
 
 
 function run_command() {
-    s_dull_blue "$1"
+    dull_blue "$1"
     echo "..."
     echo "$2"
     # FIXME redirect somewhere
@@ -565,7 +569,7 @@ function aws_date() {
     date '+%Y-%m-%d'
 }
 
-function s3_archive_and_deploy() {
+function s3_archive_and_deploy_() {
     local aws_env="${1}"
     local file_name="${2}"
     local local_path="~/Downloads/${file_name}"
@@ -577,8 +581,8 @@ function s3_archive_and_deploy() {
 }
 
 function s3_run_deploy() {
-    s3_archive_and_deploy $1 universe-outcome-server-combo.zip
-    s3_archive_and_deploy $1 analytic-afa.war
+    s3_archive_and_deploy_ $1 universe-outcome-server-combo.zip
+    s3_archive_and_deploy_ $1 analytic-afa.war
 }
 
 
@@ -586,7 +590,7 @@ function npmtest() {
     npm run test $@ -- --coverage=false
 }
 
-function perf() {
+function front-ps() {
     pss grunt webpack
 }
 
@@ -762,7 +766,7 @@ function chruby_auto() {
             version="${version%%[[:space:]]}"
             version="${version%%@*}" # strip rvm gemset name
 
-            trace "found '${version}' in '${dir}'"
+            # trace "found '${version}' in '${dir}'"
             if [[ "$version" == "$RUBY_AUTO_VERSION" ]]; then
                 if [[ $GEMHOME_AUTOSWITCH == true ]]; then
                     gem_home_auto $dir
@@ -890,7 +894,7 @@ function show_key_value() {
 }
 
 function chpwd() {
-   new_trace "chpwd"
+   # new_trace "chpwd"
    [[ $CHRUBY_AUTOSWITCH == true ]] && chruby_auto
 }
 
@@ -903,3 +907,5 @@ trace_reset
 # commented appserver - works
 # uncommented jira - broken
 # commented jira - broken
+
+export TZ='America/Chicago'

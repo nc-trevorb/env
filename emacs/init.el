@@ -101,7 +101,11 @@
           ("M-n" . 'helm-next-line)
           ("M-E" . 'previous-history-element)
           ("M-N" . 'next-history-element)
-          ("M-g" . 'helm-keyboard-quit))
+          ("M-g" . 'helm-keyboard-quit)
+
+          ("M-+" . 'helm-execute-persistent-action)
+
+          )
 
     :config (helm-mode 1))
 
@@ -131,10 +135,88 @@
     :bind
     (:map helm-swoop-map
      ("M-o" . 'helm-swoop-yank-thing-at-point)
+     ("M-o" . 'helm-multi-swoop-all-from-helm-swoop)
      )
 
     :config
     (setq helm-swoop-split-direction 'split-window-horizontally)
+    )
+
+  (use-package deadgrep
+    :init
+    (defun bt/gitignore ()
+      (concat (projectile-project-root) ".gitignore"))
+
+    (defun bt/deadgrep-push-button (name)
+      (interactive)
+      (save-excursion
+        (bt/bob)
+        (bt/eol)
+        (bt/bw-bow)
+        (bt/left)
+        (search-forward name)
+        (bt/left)
+        (call-interactively 'push-button)))
+
+    (defun bt/deadgrep-dir ()
+      (interactive)
+      (bt/deadgrep-push-button "Directory: ~/"))
+
+    (defun bt/deadgrep-regex-search ()
+      (interactive)
+      (bt/deadgrep-push-button "regex"))
+
+    (defun bt/deadgrep-string-search ()
+      (interactive)
+      (bt/deadgrep-push-button "string"))
+
+    (defun bt/deadgrep-edit-search-term ()
+      (interactive)
+      (bt/deadgrep-push-button "change"))
+
+    (defun bt/deadgrep-before ()
+      (interactive)
+      (bt/deadgrep-push-button "before"))
+
+    (defun bt/deadgrep-after ()
+      (interactive)
+      (bt/deadgrep-push-button "after"))
+
+    (defun bt/deadgrep-toggle-tests ()
+      (interactive)
+      (if bt/deadgrep-hiding-tests
+          (shell-command (concat "sed -i '' -e '$ d' " (bt/gitignore)))
+        (shell-command (concat "echo '*test.js' >> " (bt/gitignore))))
+      (setq bt/deadgrep-hiding-tests (not bt/deadgrep-hiding-tests))
+      (deadgrep-restart))
+
+    (setq bt/deadgrep-hiding-tests
+          (if (string= default-directory "~/")
+              nil
+            (string= "*test.js" (car (last (with-temp-buffer (insert-file-contents (bt/gitignore))
+                                                             (split-string (buffer-string) "\n" t)))))))
+
+    (defun kill-other-buffers ()
+      "Kill all other buffers."
+      (interactive)
+      (mapc 'kill-buffer
+            (delq (current-buffer)
+                  (seq-filter 'buffer-file-name (buffer-list)))))
+
+    (defun bt/deadgrep-open-all-files ()
+      (interactive)
+      )
+
+    :bind
+    (:map deadgrep-mode-map
+          ("T" . 'bt/deadgrep-toggle-tests)
+          ("D" . 'bt/deadgrep-dir)
+          ("R" . 'bt/deadgrep-regex-search)
+          ("S" . 'bt/deadgrep-string-search)
+          ("B" . 'bt/deadgrep-before)
+          ("A" . 'bt/deadgrep-after)
+          ("{" . 'bt/deadgrep-edit-search-term)
+          )
     )
 
   (use-package whitespace
@@ -248,6 +330,15 @@
     (setq web-mode-markup-indent-offset 2) ;; html indent
     (setq web-mode-code-indent-offset 2) ;; js indent
     (setq js-indent-level 2) ;; js indent
+
+    (setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-comment-formats))
+    (add-to-list 'web-mode-comment-formats '("javascript" . "//"))
+    (add-to-list 'web-mode-comment-formats '("jsx" . "//"))
+
+    ;; (setq-default web-mode-comment-formats
+    ;;               '(("java"       . "/*")
+    ;;                 ("javascript" . "//")
+    ;;                 ("php"        . "/*")))
 
     ;; single-line comments for js
     ;; (add-hook 'web-mode-hook (lambda ()
@@ -389,7 +480,6 @@
     (defun bt/magit-commit-no-verify ()
       (interactive)
       (magit-run-git-async "commit" "--no-verify"))
-      
 
     (defun bt/magit-open-github-pr ()
       (interactive)
@@ -1010,7 +1100,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(yasnippet terraform-mode dumb-jump diminish deadgrep expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode jinja2-mode helm-projectile)))
+   '(yasnippet terraform-mode dumb-jump diminish expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode jinja2-mode helm-projectile)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

@@ -1,9 +1,10 @@
 [user]
   name = Benjamin Trevor
-  email = benjamin_trevor@fastmail.com
+  email = trevorb@nextcapital.com
 
 [core]
   excludesfile = ~/.gitignore_global
+  hooksPath = /dev/null
 
 [push]
   default = matching
@@ -26,9 +27,9 @@
   amend = commit --amend --no-edit
   amendA = !git add -A && git commit --amend --no-edit
 
-  l = !GIT_PAGER=cat git log -10 --graph --date=short --format=format:'%C(blue)%h%C(white) %C(240)- %C(white)%s%C(240) -- %ad'
-  la = !GIT_PAGER=cat git log -10 --graph --date=short --format=format:'%C(blue)%h%C(white) %C(240)- %C(white)%s%C(240) -- %an, %ad'
-  lt = !GIT_PAGER=cat git log -10 --graph --date=format:'%Y-%m-%d, %H:%M' --format=format:'%C(blue)%h%C(white) %C(240)- %C(white)%s%C(240) -- %ad'
-  lb = !GIT_PAGER=cat git log -10 --graph --date=short --format=format:'%C(blue)%h%C(white) %C(green)%d %C(white)%s%C(240) -- %an, %ad'
-  ll = !GIT_PAGER=cat git log --graph --date=short --format=format:'%C(blue)%h%C(white) %C(240)- %C(white)%s%C(240) -- %ad'
+  l = log -10 --graph --date=short --format=format:'%C(blue)%h%C(white) %C(240)- %C(white)%s%C(240) -- %ad'
+  la = log -10 --graph --date=short --format=format:'%C(blue)%h%C(white) %C(240)- %C(white)%s%C(240) -- %an, %ad'
+  lt = log -10 --graph --date=format:'%Y-%m-%d, %H:%M' --format=format:'%C(blue)%h%C(white) %C(240)- %C(white)%s%C(240) -- %ad'
+  lb = log -10 --graph --date=short --format=format:'%C(blue)%h%C(white) %C(green)%d %C(white)%s%C(240) -- %an, %ad'
+  ll = log --graph --date=short --format=format:'%C(blue)%h%C(white) %C(240)- %C(white)%s%C(240) -- %ad'
   llb = log --graph --date=short --format=format:'%C(blue)%h%C(white) %C(green)%d %C(white)%s%C(240) -- %an, %ad'

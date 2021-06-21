@@ -156,6 +156,7 @@
     (interactive)
     (if (region-active-p)
         (bt/adjust-selection-for-edit))
+    (setq deadgrep--search-type 'string)
     (call-interactively 'deadgrep))
   ;; (defalias 'bt/search-project-app 'bt/deadgrep-app)
   ;; (defalias 'bt/search-project-lib 'bt/deadgrep-lib)
@@ -164,12 +165,7 @@
   (defun bt/regex-search-project ()
     (interactive)
     (setq deadgrep--search-type 'regexp)
-    (call-interactively 'bt/search-project))
-
-  (defun bt/search-project-app ()
-    (interactive)
-    (setq deadgrep--search-type 'regexp)
-    (call-interactively 'bt/search-project))
+    (call-interactively 'deadgrep))
 
   (defun bt/search-swoop ()
     (interactive)
@@ -235,7 +231,7 @@
       (if (string= s "count")
           (message (concat (number-to-string (- (string-to-number output) 1)) " items total"))
         (progn
-          (shell-command (concat "echo '** '" s " >> " org-file))
+          (shell-command (concat "echo '** <" (format-time-string "%Y-%m-%d %a") "> '" s " >> " org-file))
           (message (concat "added to inbox.org (" output " items total)"))))))
 
   (defun bt/editable ()
@@ -581,17 +577,6 @@
   (defun bt/comment ()
     (interactive)
     (whole-line-or-region-comment-dwim nil))
-;;     (if (string= "web-mode" major-mode)
-;;         (progn
-;;           (replace-region-contents (region-beginning)
-;;                                    (region-end)
-;;                                    (lambda ()
-;;                                      (let ((s (buffer-substring (region-beginning) (region-end))))
-;;                                        (replace-regexp-in-string (regexp-quote "
-;; ") "
-;; // " s)))
-;;                                    ))
-;;       (whole-line-or-region-comment-dwim nil)))
 
   (defun bt/comment-par ()
     (interactive)
@@ -599,6 +584,7 @@
         (bt/comment)
       (progn
         (bt/old-select "ip")
+        (bt/left)
         (bt/comment))))
 
   (defun bt/vanish-eol ()
@@ -700,6 +686,14 @@
     (bt/down)
     (bt/paste-fmt))
 
+  ;; (defun bt/pend-all-specs ()
+  ;;   (interactive)
+  ;;   (bt/bob)
+  ;;   (mapc (lambda (term)
+  ;;           (while (search-forward (concat " " term "("))
+  ;;             (replace-match (concat " x" term "("))))
+  ;;         '("describe" "context" "test" "it")))
+
   (defun xah-toggle-previous-letter-case ()
     (interactive)
     (let ((case-fold-search nil))
@@ -713,18 +707,6 @@
     (interactive)
     (bt/down)
     (bt/join-line-above))
-
-  (defun bt/appserver-github-url (&optional start-line end-line)
-    (interactive)
-    (let ((url (replace-regexp-in-string "/Users/trevorb/code/appserver" "https://github.com/BLC/rails/blob/master" (buffer-file-name)))
-          (start-line-suffix (concat "#L" start-line))
-          (end-line-suffix (concat "-L" end-line))
-          )
-      (if (null start-line)
-          url
-        (if (null end-line)
-            (concat url start-line-suffix)
-          (concat url start-line-suffix end-line-suffix)))))
 
   (defun bt/wip-commit ()
     (interactive)
@@ -762,9 +744,42 @@
     (interactive)
     (bt/pbcopy-str (bt/appserver-github-url (format-mode-line "%l"))))
 
-  (defun bt/open-in-github ()
+  ;; https://github.com/BLC/admin-ui/blob/master/cypress/integration/investor-servicing/people/view-people.spec.js
+  ;;                                             cypress/integration/investor-servicing/people/view-people.spec.js
+  (defun nc/url-with-lines (dir-name repo-name &optional start-line end-line)
     (interactive)
-    (browse-url (bt/appserver-github-url (format-mode-line "%l"))))
+    (let ((url (replace-regexp-in-string (concat "/Users/trevorb/code/" dir-name)
+                                         (concat "https://github.com/BLC/" repo-name "/blob/master")
+                                         (buffer-file-name)))
+          (start-line-suffix (concat "#L" start-line))
+          (end-line-suffix (concat "-L" end-line))
+          )
+      (message "replacing:")
+      (message (concat "/Users/trevorb/code/" dir-name))
+      (message "with:")
+      (message (concat "https://github.com/BLC/" repo-name "/blob/master"))
+      (message "in:")
+      (message url)
+      (if (null start-line)
+          url
+        (if (null end-line)
+            (concat url start-line-suffix)
+          (concat url start-line-suffix end-line-suffix)))))
+
+  (defun nc/github-url (&optional start-line end-line)
+    (interactive)
+    (let* ((dir-name (file-name-nondirectory (buffer-file-name)))
+           (repo-name (cond ((string= "appserver" dir-name) "rails")
+                            ((string= "ui" dir-name) "nextcapital-ui")
+                            (:else dir-name)
+                            )))
+      (nc/url-with-lines dir-name repo-name start-line end-line)))
+
+  (defun nc/open-in-github ()
+    (interactive)
+    (message "got this url: ")
+    (message (nc/github-url (format-mode-line "%l")))
+    (browse-url (nc/github-url (format-mode-line "%l"))))
 
   (defun bt/show-filepaths ()
     (interactive)
@@ -1023,7 +1038,7 @@
         ("RET" . 'bt/newline-here)
 
         ("!" . 'bt/noop) ("@" . 'bt/noop) ("#" . 'bt/noop) ("$" . 'bt/noop) ("%" . 'bt/noop) ("^" . 'bt/noop) ("&" . 'bt/to-line) ("*" . 'bt/noop)
-        ("1" . 'bt/noop) ("2" . 'bt/noop) ("3" . 'bt/noop) ("4" . 'bt/noop) ("5" . 'bt/noop) ("6" . 'bt/noop) ("7" . 'bt/noop) ("8" . 'bt/noop) ("9" . 'bt/noop) ("0" . 'bt/noop)
+        ("1" . 'bt/noop) ("2" . 'bt/noop) ("3" . 'bt/noop) ("4" . 'bt/noop) ("5" . 'bt/noop) ("6" . 'bt/noop) ("7" . 'bt/noop) ("8" . 'bt/noop) ("9" . 'bt/noop) ("0" . 'bt/to-line)
 
         ("[" . 'bt/fold) ("]" . 'bt/unfold)
         ("{" . 'bt/search-project) ("}" . 'bt/regex-search-project)
@@ -1091,7 +1106,7 @@
         ("SPC B" . 'bt/bookmark)
         ("SPC F" . 'bt/find-bookmark)
         ("SPC g" . 'bt/git)
-        ("SPC G" . 'bt/open-in-github)
+        ("SPC G" . 'nc/open-in-github)
         ("SPC n" . 'bt/note)
         ("SPC m" . 'bt/start-macro)
         ("SPC M" . 'bt/end-macro)

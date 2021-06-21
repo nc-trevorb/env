@@ -1,8 +1,8 @@
 # -*- mode: snippet -*-
 # contributor: Jimmy Yuen Ho Wong <wyuenho@gmail.com>
-# name: anonymousFunction
-# key: anon
+# name: function
+# key: constfn
 # --
-($1) => {
+const ${1:functionName} = ($2) => {
   $0
 }
