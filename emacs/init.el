@@ -144,56 +144,56 @@
 
   (use-package deadgrep
     :init
-    (defun bt/gitignore ()
+    (defun %gitignore ()
       (concat (projectile-project-root) ".gitignore"))
 
-    (defun bt/deadgrep-push-button (name)
+    (defun %deadgrep-push-button (name)
       (interactive)
       (save-excursion
-        (bt/bob)
-        (bt/eol)
-        (bt/bw-bow)
-        (bt/left)
+        (%bob)
+        (%eol)
+        (%bw-bow)
+        (%left)
         (search-forward name)
-        (bt/left)
+        (%left)
         (call-interactively 'push-button)))
 
-    (defun bt/deadgrep-dir ()
+    (defun %deadgrep-dir ()
       (interactive)
-      (bt/deadgrep-push-button "Directory: ~/"))
+      (%deadgrep-push-button "Directory: ~/"))
 
-    (defun bt/deadgrep-regex-search ()
+    (defun %deadgrep-regex-search ()
       (interactive)
-      (bt/deadgrep-push-button "regex"))
+      (%deadgrep-push-button "regex"))
 
-    (defun bt/deadgrep-string-search ()
+    (defun %deadgrep-string-search ()
       (interactive)
-      (bt/deadgrep-push-button "string"))
+      (%deadgrep-push-button "string"))
 
-    (defun bt/deadgrep-edit-search-term ()
+    (defun %deadgrep-edit-search-term ()
       (interactive)
-      (bt/deadgrep-push-button "change"))
+      (%deadgrep-push-button "change"))
 
-    (defun bt/deadgrep-before ()
+    (defun %deadgrep-before ()
       (interactive)
-      (bt/deadgrep-push-button "before"))
+      (%deadgrep-push-button "before"))
 
-    (defun bt/deadgrep-after ()
+    (defun %deadgrep-after ()
       (interactive)
-      (bt/deadgrep-push-button "after"))
+      (%deadgrep-push-button "after"))
 
-    (defun bt/deadgrep-toggle-tests ()
+    (defun %deadgrep-toggle-tests ()
       (interactive)
-      (if bt/deadgrep-hiding-tests
-          (shell-command (concat "sed -i '' -e '$ d' " (bt/gitignore)))
-        (shell-command (concat "echo '*test.js' >> " (bt/gitignore))))
-      (setq bt/deadgrep-hiding-tests (not bt/deadgrep-hiding-tests))
+      (if %deadgrep-hiding-tests
+          (shell-command (concat "sed -i '' -e '$ d' " (%gitignore)))
+        (shell-command (concat "echo '*test.js' >> " (%gitignore))))
+      (setq %deadgrep-hiding-tests (not %deadgrep-hiding-tests))
       (deadgrep-restart))
 
-    (setq bt/deadgrep-hiding-tests
+    (setq %deadgrep-hiding-tests
           (if (string= default-directory "~/")
               nil
-            (string= "*test.js" (car (last (with-temp-buffer (insert-file-contents (bt/gitignore))
+            (string= "*test.js" (car (last (with-temp-buffer (insert-file-contents (%gitignore))
                                                              (split-string (buffer-string) "\n" t)))))))
 
     (defun kill-other-buffers ()
@@ -203,19 +203,19 @@
             (delq (current-buffer)
                   (seq-filter 'buffer-file-name (buffer-list)))))
 
-    (defun bt/deadgrep-open-all-files ()
+    (defun %deadgrep-open-all-files ()
       (interactive)
       )
 
     :bind
     (:map deadgrep-mode-map
-          ("T" . 'bt/deadgrep-toggle-tests)
-          ("D" . 'bt/deadgrep-dir)
-          ("R" . 'bt/deadgrep-regex-search)
-          ("S" . 'bt/deadgrep-string-search)
-          ("B" . 'bt/deadgrep-before)
-          ("A" . 'bt/deadgrep-after)
-          ("{" . 'bt/deadgrep-edit-search-term)
+          ("T" . '%deadgrep-toggle-tests)
+          ("D" . '%deadgrep-dir)
+          ("R" . '%deadgrep-regex-search)
+          ("S" . '%deadgrep-string-search)
+          ("B" . '%deadgrep-before)
+          ("A" . '%deadgrep-after)
+          ("{" . '%deadgrep-edit-search-term)
           )
     )
 
@@ -358,14 +358,14 @@
     :config
     (add-to-list 'auto-mode-alist '("\\.j2$" . jinja2-mode))
 
-    (defun bt/python-repl ()
+    (defun %python-repl ()
       (interactive)
       (insert "import IPython")
       (newline-and-indent)
       (insert "IPython.embed()")
       (save-buffer))
 
-    (define-key my-keys-minor-mode-map (kbd "C-c >") 'bt/python-repl))
+    (define-key my-keys-minor-mode-map (kbd "C-c >") '%python-repl))
 
   (use-package ruby-mode :defer t
     :config
@@ -377,12 +377,12 @@
     (add-to-list 'auto-mode-alist
                  '("\\(?:Brewfile\\|Vagrantfile\\|Capfile\\|Gemfile\\(?:\\.[a-zA-Z0-9._-]+\\)?\\|[rR]akefile\\)\\'" . ruby-mode))
 
-    (defun bt/rspec-swoop ()
+    (defun %rspec-swoop ()
       (interactive)
       (helm-swoop :$query "describe\\ \\|context\\|\\ it\\ \\|_examples")
       )
 
-    ;; (define-key my-keys-minor-mode-map (kbd "C-M-t") 'bt/rspec-swoop)
+    ;; (define-key my-keys-minor-mode-map (kbd "C-M-t") '%rspec-swoop)
 
     )
 
@@ -400,27 +400,27 @@
         ;; Use opam switch to lookup ocamlmerlin binary
         (setq merlin-command 'opam)))
 
-    (defun bt/first-merlin-error ()
+    (defun %first-merlin-error ()
       (interactive)
       ;; FIXME figure out how to stay at excursion when pressing enter, cancel with C-g
       (save-excursion
-        (bt/bob)
+        (%bob)
         (merlin-error-next)))
 
-    (defun bt/dune-promote ()
+    (defun %dune-promote ()
       (interactive)
       (let ((exit-code (shell-command "dune promote")))
         (if (= 0 exit-code)
             (message "promoted"))))
 
-    (defun bt/dune-runtest ()
+    (defun %dune-runtest ()
       (interactive)
       (let ((exit-code (shell-command "dune runtest")))
         (if (= 0 exit-code)
             (message "%s" (propertize "tests passed" 'face 'success)))))
     ;; (message "%s" (propertize "tests passed" 'face '(:foreground "red"))))))
 
-    (define-key my-keys-minor-mode-map (kbd "M-A") 'bt/first-merlin-error)
+    (define-key my-keys-minor-mode-map (kbd "M-A") '%first-merlin-error)
     (define-key my-keys-minor-mode-map (kbd "M-B") 'merlin-error-prev)
     (define-key my-keys-minor-mode-map (kbd "M-F") 'merlin-error-next)
 
@@ -430,14 +430,14 @@
     (add-to-list 'auto-mode-alist '("\\.mll\\'" . tuareg-mode))
     (add-to-list 'auto-mode-alist '("\\.mly\\'" . tuareg-mode)))
 
-  (defun bt/git ()
+  (defun %git ()
     (interactive)
     (magit-status)
     (delete-other-windows)
     (magit-process-buffer)
     (other-window 1))
 
-  ;; defer to save .5s at startup, calling bt/git will load magit
+  ;; defer to save .5s at startup, calling %git will load magit
   (use-package magit :defer t
     :bind
     (:map my-keys-minor-mode-map
@@ -457,43 +457,43 @@
       (interactive)
       (magit-run-git-async "submodule" "update" "--init" "--recursive"))
 
-    (defun bt/magit-submodule-recursive-checkout ()
+    (defun %magit-submodule-recursive-checkout ()
       (interactive)
       (magit-run-git-async "submodule" "foreach" "--recursive" "git" "checkout" "."))
 
-    (defun bt/magit-update-latest-timestamp ()
+    (defun %magit-update-latest-timestamp ()
       (interactive)
       (magit-run-git-async "commit" "--amend" "--no-edit" "--date" (format-time-string "%Y-%m-%d")))
 
-    (defun bt/magit-checkout-last ()
+    (defun %magit-checkout-last ()
       (interactive)
       (magit-run-git-async "checkout" "-"))
 
-    (defun bt/magit-checkout-master ()
+    (defun %magit-checkout-master ()
       (interactive)
       (magit-run-git-async "checkout" "master"))
 
-    (defun bt/magit-rebase-master ()
+    (defun %magit-rebase-master ()
       (interactive)
       (magit-run-git-async "rebase" "master"))
 
-    (defun bt/magit-commit-no-verify ()
+    (defun %magit-commit-no-verify ()
       (interactive)
       (magit-run-git-async "commit" "--no-verify"))
 
-    (defun bt/magit-open-github-pr ()
+    (defun %magit-open-github-pr ()
       (interactive)
       (async-shell-command "gh pr view --web"))
 
-    (defun bt/magit-open-github ()
+    (defun %magit-open-github ()
       (interactive)
       (async-shell-command "gh repo view --web"))
 
-    (defun bt/new-branch-at-HEAD ()
+    (defun %new-branch-at-HEAD ()
       (interactive)
       (magit-run-git-async "branch" "HEAD"))
 
-    ;; (defun bt/magit-commit-without-hooks ()
+    ;; (defun %magit-commit-without-hooks ()
     ;;   (interactive)
     ;;   (magit-run-git-async "commit" "--no-verify"))
 
@@ -512,32 +512,32 @@
       '("r" "recursive update" so/magit-submodule-update-recursive))
 
     (transient-append-suffix 'magit-submodule "r"
-      '("c" "recursive checkout" bt/magit-submodule-recursive-checkout))
+      '("c" "recursive checkout" %magit-submodule-recursive-checkout))
 
     (transient-append-suffix 'magit-branch "b"
-      '("m" "master" bt/magit-checkout-master))
+      '("m" "master" %magit-checkout-master))
 
     (transient-append-suffix 'magit-branch "b"
-      '("l" "last branch" bt/magit-checkout-last))
+      '("l" "last branch" %magit-checkout-last))
 
     (transient-append-suffix 'magit-rebase "e"
-      '("m" "master" bt/magit-rebase-master))
+      '("m" "master" %magit-rebase-master))
 
     (transient-append-suffix 'magit-commit "S"
-      '("t" "update timestamp" bt/magit-update-latest-timestamp))
+      '("t" "update timestamp" %magit-update-latest-timestamp))
 
     (transient-append-suffix 'magit-commit "c"
-      '("n" "no hooks" bt/magit-commit-no-verify))
+      '("n" "no hooks" %magit-commit-no-verify))
 
     ;; (transient-append-suffix 'magit-commit "c"
-    ;;   '("n" "no hooks" bt/magit-commit-without-hooks))
+    ;;   '("n" "no hooks" %magit-commit-without-hooks))
 
     ;; open things in github, not submodule related ¯\_(ツ)_/¯
     (transient-append-suffix 'magit-submodule "c"
-      '("g" "open github" bt/magit-open-github))
+      '("g" "open github" %magit-open-github))
 
     (transient-append-suffix 'magit-submodule "g"
-      '("p" "open PR in github" bt/magit-open-github-pr))
+      '("p" "open PR in github" %magit-open-github-pr))
 
     )
 
@@ -590,17 +590,17 @@
   (use-package org :defer t
     :diminish ('org-indent-mode . "")
     :init
-    (defun bt/org-update-all-statistics ()
+    (defun %org-update-all-statistics ()
       (interactive)
       (let ((current-prefix-arg 4)) ;; emulate C-u
         (call-interactively 'org-update-statistics-cookies)))
 
-    (defun bt/org-todo ()
+    (defun %org-todo ()
       (interactive)
       (let ((current-prefix-arg 4)) ;; emulate C-u
         (call-interactively 'org-todo)))
 
-    (defun bt/org-journal-entry- (stars has-newline)
+    (defun %org-journal-entry- (stars has-newline)
       (let ((header (concat
                      (if has-newline "\n" "")
                      (make-string stars ?*)
@@ -609,97 +609,97 @@
         (insert "\n\n")
         (delete-blank-lines)
         (insert header)
-        (bt/org-insert-datetime)
+        (%org-insert-datetime)
         (insert " ")))
 
-    (defun bt/org-journal-entry ()
+    (defun %org-journal-entry ()
       (interactive)
-      (bt/org-journal-entry- 2 nil)
-      (bt/add))
+      (%org-journal-entry- 2 nil)
+      (%add))
 
-    (defun bt/org-insert-datetime ()
+    (defun %org-insert-datetime ()
       (interactive)
       (setq current-prefix-arg '(16))      ; C-u C-u
       (call-interactively 'org-time-stamp))
 
-    (defun bt/org-insert-date ()
+    (defun %org-insert-date ()
       (interactive)
-      (bt/org-insert-datetime)     ;; <2019-03-17 Sun 13:42>|
+      (%org-insert-datetime)     ;; <2019-03-17 Sun 13:42>|
       (backward-char)              ;; <2019-03-17 Sun 13:42|>
       (org-delete-backward-char 6) ;; <2019-03-17 Sun|>
       (forward-char))               ;; <2019-03-17 Sun>|
 
-    (defun bt/org-beginning-of-line ()
+    (defun %org-beginning-of-line ()
       (interactive)
       (beginning-of-line)
       (if (org-at-heading-p)
           (search-forward " ")))
 
-    (defun bt/org-insert-heading ()
+    (defun %org-insert-heading ()
       (interactive)
-      (if (bt/on-blank-line)
+      (if (%on-blank-line)
           (delete-char -1))
-      (bt/eol)
+      (%eol)
       (org-insert-heading-after-current)
-      (bt/add))
+      (%add))
 
-    (defun bt/org-insert-list-elt ()
+    (defun %org-insert-list-elt ()
       (interactive)
-      (bt/eol)
+      (%eol)
       (org-meta-return)
-      (bt/add))
+      (%add))
 
-    (defmacro bt/defun-todo-fn (name keyword)
+    (defmacro %defun-todo-fn (name keyword)
       `(defun ,name ()
          (interactive)
          (org-todo ,keyword)))
-    (put 'bt/defun-todo-fn 'lisp-indent-function 'defun)
+    (put '%defun-todo-fn 'lisp-indent-function 'defun)
 
     ;; not working: https://www.gnu.org/software/emacs/manual/html_node/elisp/Using-Interactive.html
-    ;; (defmacro bt/defun-todo-reason-fn (name keyword)
+    ;; (defmacro %defun-todo-reason-fn (name keyword)
     ;;   `(defun ,name (arg)
     ;;      (interactive (concat "s" ,keyword " "))
     ;;      (org-todo ,keyword)
     ;;      (insert arg)
     ;;      (insert "]")))
-    ;; (put 'bt/defun-todo-fn 'lisp-indent-function 'defun)
+    ;; (put '%defun-todo-fn 'lisp-indent-function 'defun)
 
-    (bt/defun-todo-fn bt/org-clear-todo "")
-    (bt/defun-todo-fn bt/org-plan "[PLAN]")
-    (bt/defun-todo-fn bt/org-todo "[TODO]")
-    (bt/defun-todo-fn bt/org-wait "[WAIT]")
-    (bt/defun-todo-fn bt/org-done "[DONE]")
-    (bt/defun-todo-fn bt/org-skip "[SKIP]")
+    (%defun-todo-fn %org-clear-todo "")
+    (%defun-todo-fn %org-plan "[PLAN]")
+    (%defun-todo-fn %org-todo "[TODO]")
+    (%defun-todo-fn %org-wait "[WAIT]")
+    (%defun-todo-fn %org-done "[DONE]")
+    (%defun-todo-fn %org-skip "[SKIP]")
 
-    (defun bt/org-reset-subtree ()
+    (defun %org-reset-subtree ()
       (interactive)
       (save-excursion
         (org-mark-subtree)
-        (bt/exchange-regex (regexp-quote "* [DONE]") "* [TODO]" nil (region-beginning) (region-end)))
+        (%exchange-regex (regexp-quote "* [DONE]") "* [TODO]" nil (region-beginning) (region-end)))
       (save-excursion
         (org-mark-subtree)
-        (bt/exchange-regex (regexp-quote "* [SKIP]") "* [TODO]" nil (region-beginning) (region-end))
+        (%exchange-regex (regexp-quote "* [SKIP]") "* [TODO]" nil (region-beginning) (region-end))
         )
       (org-ctrl-c-ctrl-c)
       )
 
-    (defun bt/org-finish ()
+    (defun %org-finish ()
       (interactive)
       (save-excursion
-        (bt/org-done)
+        (%org-done)
         (org-archive-to-archive-sibling)))
 
-    (defalias 'bt/org-archive-to-sibling 'org-archive-to-archive-sibling)
+    (defalias '%org-archive-to-sibling 'org-archive-to-archive-sibling)
 
-    (defun bt/org-create-archive ()
+    (defun %org-create-archive ()
       (interactive)
-      (bt/org-insert-child-heading)
+      (%org-insert-child-heading)
       (insert "Archive :ARCHIVE:")
-      (bt/org-insert-child-heading)
+      (%org-insert-child-heading)
       (insert "notes")
-      (bt/up)
+      (%up)
       (so/JK-org-move-to-top)
-      (bt/org-full-save)
+      (%org-full-save)
       )
 
     (defun so/JK-org-move-to-top ()
@@ -713,154 +713,154 @@
            (unless (string-match "Cannot move past superior level or buffer limit" err-msg)
              (signal 'user-error (list err-msg)))))))
 
-    (defun bt/org-insert-todo ()
+    (defun %org-insert-todo ()
       (interactive)
-      (bt/org-insert-heading)
-      (bt/org-todo))
+      (%org-insert-heading)
+      (%org-todo))
 
-    (defun bt/org-insert-note ()
+    (defun %org-insert-note ()
       (interactive)
-      (bt/eob)
+      (%eob)
       (delete-blank-lines)
-      (if (not (bt/on-blank-line))
+      (if (not (%on-blank-line))
           (progn
-            (bt/eol)
+            (%eol)
             (insert "\n")))
-      (bt/org-insert-datetime)
+      (%org-insert-datetime)
       (insert "\n")
-      (bt/add))
+      (%add))
 
-    (defun bt/org-checklist ()
+    (defun %org-checklist ()
       (interactive)
       (org-todo "")
-      (bt/org-beginning-of-line)
+      (%org-beginning-of-line)
       (insert "[/] ")
       )
 
-    (defun bt/org-full-save ()
+    (defun %org-full-save ()
       (interactive)
-      (bt/whitespace)
-      (bt/org-update-all-statistics)
-      (bt/save)
+      (%whitespace)
+      (%org-update-all-statistics)
+      (%save)
       )
 
-    (defun bt/org-insert-child-heading ()
+    (defun %org-insert-child-heading ()
       (interactive)
-      (call-interactively 'bt/org-insert-heading)
+      (call-interactively '%org-insert-heading)
       (org-demote-subtree))
 
-    (defun bt/org-insert-timestamp-heading ()
+    (defun %org-insert-timestamp-heading ()
       (interactive)
-      (call-interactively 'bt/org-insert-heading)
-      (call-interactively 'bt/org-insert-datetime))
+      (call-interactively '%org-insert-heading)
+      (call-interactively '%org-insert-datetime))
 
-    (defalias 'bt/org-deadline-insert 'org-deadline)
-    (defalias 'bt/org-schedule-insert 'org-schedule)
+    (defalias '%org-deadline-insert 'org-deadline)
+    (defalias '%org-schedule-insert 'org-schedule)
 
-    (defun bt/org-deadline-now ()
+    (defun %org-deadline-now ()
       (interactive)
       (org-back-to-heading)
-      (bt/eol)
+      (%eol)
       (insert "\nDEADLINE: ")
-      (call-interactively 'bt/org-insert-datetime)
+      (call-interactively '%org-insert-datetime)
       )
 
-    (defun bt/org-schedule-now ()
+    (defun %org-schedule-now ()
       (interactive)
       (org-back-to-heading)
-      (bt/eol)
+      (%eol)
       (insert "\nSCHEDULED: ")
-      (call-interactively 'bt/org-insert-datetime)
+      (call-interactively '%org-insert-datetime)
       )
 
-    (setq bt/org-hide-level 1)
-    (defun bt/org-dec-hiding ()
+    (setq %org-hide-level 1)
+    (defun %org-dec-hiding ()
       (interactive)
-      (if (> bt/org-hide-level 1)
-          (setq bt/org-hide-level (- bt/org-hide-level 1)))
-      (outline-hide-sublevels bt/org-hide-level))
+      (if (> %org-hide-level 1)
+          (setq %org-hide-level (- %org-hide-level 1)))
+      (outline-hide-sublevels %org-hide-level))
 
-    (defun bt/org-inc-hiding ()
+    (defun %org-inc-hiding ()
       (interactive)
-      (if (< bt/org-hide-level 12)
-          (setq bt/org-hide-level (+ bt/org-hide-level 1)))
-      (outline-hide-sublevels bt/org-hide-level))
+      (if (< %org-hide-level 12)
+          (setq %org-hide-level (+ %org-hide-level 1)))
+      (outline-hide-sublevels %org-hide-level))
 
-    (defun bt/org-reset-hiding ()
+    (defun %org-reset-hiding ()
       (interactive)
-      (setq bt/org-hide-level 1)
-      (outline-hide-sublevels bt/org-hide-level))
+      (setq %org-hide-level 1)
+      (outline-hide-sublevels %org-hide-level))
 
-    ;; (defalias 'bt/table-view 'org-columns)
-    (defalias 'bt/org-agenda 'org-agenda-list)
-    (defalias 'bt/clock-in 'org-clock-in)
-    (defalias 'bt/clock-out 'org-clock-out)
-    (defalias 'bt/clock-cancel 'org-clock-cancel)
-    ;; (defalias 'bt/table-contents 'org-columns-content)
-    (defun bt/refresh-table ()
+    ;; (defalias '%table-view 'org-columns)
+    (defalias '%org-agenda 'org-agenda-list)
+    (defalias '%clock-in 'org-clock-in)
+    (defalias '%clock-out 'org-clock-out)
+    (defalias '%clock-cancel 'org-clock-cancel)
+    ;; (defalias '%table-contents 'org-columns-content)
+    (defun %refresh-table ()
       (interactive)
       (call-interactively 'org-columns-redo)
       (call-interactively 'org-columns-content)
       )
 
-    (defun bt/org-morning ()
+    (defun %org-morning ()
       (interactive)
       (org-clone-subtree-with-time-shift 1 "+1d")
       (org-forward-heading-same-level 1)
       (org-metaup)
       )
 
-    (defun bt/org-unfinish ()
+    (defun %org-unfinish ()
       (interactive)
       (org-clone-subtree-with-time-shift 1 "+1d")
       )
 
-    (defun bt/table-begin ()
+    (defun %table-begin ()
       (interactive)
-      (bt/clock-in)
+      (%clock-in)
       (setq current-prefix-arg '(4))      ;; C-u
       (org-columns-todo))
 
-    (defun bt/table-finish ()
+    (defun %table-finish ()
       (interactive)
-      (bt/clock-out)
+      (%clock-out)
       (setq current-prefix-arg '(4))      ;; C-u
       (org-columns-todo))
 
-    (defun bt/set-todo ()
+    (defun %set-todo ()
       (interactive)
       (setq current-prefix-arg '(4))      ;; C-u
       (org-columns-todo))
 
-    (defun bt/table-view ()
+    (defun %table-view ()
       (interactive)
       (save-excursion
-        (bt/bob) ;; applies to entire file, using default COLUMNS
+        (%bob) ;; applies to entire file, using default COLUMNS
         (call-interactively 'org-columns)
         (call-interactively 'org-columns-content))
 
-      (bind-key "n" 'bt/down org-columns-map)
-      (bind-key "e" 'bt/up org-columns-map)
+      (bind-key "n" '%down org-columns-map)
+      (bind-key "e" '%up org-columns-map)
 
       (bind-key "[" 'org-columns-previous-allowed-value org-columns-map)
       (bind-key "]" 'org-columns-next-allowed-value org-columns-map)
 
       (bind-key "H" 'org-columns-previous-allowed-value org-columns-map)
       (bind-key "N" 'org-columns-next-allowed-value org-columns-map)
-      (bind-key "E" 'bt/up org-columns-map)
-      (bind-key "I" 'bt/up org-columns-map)
+      (bind-key "E" '%up org-columns-map)
+      (bind-key "I" '%up org-columns-map)
 
-      (bind-key "t" 'bt/set-todo org-columns-map)
-      (bind-key "b" 'bt/table-begin org-columns-map)
-      (bind-key "f" 'bt/table-finish org-columns-map)
+      (bind-key "t" '%set-todo org-columns-map)
+      (bind-key "b" '%table-begin org-columns-map)
+      (bind-key "f" '%table-finish org-columns-map)
 
       (bind-key "c" nil org-columns-map)
       (bind-key "cc" 'org-clock-jump-to-current-clock org-columns-map)
-      (bind-key "ci" 'bt/clock-in org-columns-map)
-      (bind-key "co" 'bt/clock-out org-columns-map)
+      (bind-key "ci" '%clock-in org-columns-map)
+      (bind-key "co" '%clock-out org-columns-map)
 
-      (bind-key "r" 'bt/refresh-table org-columns-map)
-      (bind-key "G" 'bt/refresh-table org-columns-map)
+      (bind-key "r" '%refresh-table org-columns-map)
+      (bind-key "G" '%refresh-table org-columns-map)
       )
 
     ;; iterm remaps C-; to M-#
@@ -873,67 +873,67 @@
      ("C-M-i" . 'org-forward-heading-same-level)
      ("C-M-u" . 'outline-up-heading)
 
-     ("M-# <f8>" . 'bt/org-full-save)
+     ("M-# <f8>" . '%org-full-save)
 
-     ;; ("M-&" . 'bt/org-inc-hiding)
-     ;; ("M-]" . 'bt/org-dec-hiding)
+     ;; ("M-&" . '%org-inc-hiding)
+     ;; ("M-]" . '%org-dec-hiding)
 
      ("M-<" . 'org-force-cycle-archived)
-     ;; ("C-M-a" . 'bt/org-archive-to-sibling) ;; C-M-:
+     ;; ("C-M-a" . '%org-archive-to-sibling) ;; C-M-:
      ("C-M-l" . 'org-promote-subtree)
      ("C-M-y" . 'org-demote-subtree)
 
-     ("C-M-o" . 'bt/org-insert-heading)
-     ("C-M-_" . 'bt/org-insert-child-heading)
-     ("M-^" . 'bt/org-insert-timestamp-heading) ;; C-M-return
+     ("C-M-o" . '%org-insert-heading)
+     ("C-M-_" . '%org-insert-child-heading)
+     ("M-^" . '%org-insert-timestamp-heading) ;; C-M-return
 
-     ;; ("C-M-f" . 'bt/org-finish)
-     ;; ("C-M-c" . 'bt/org-complete)
-     ;; ("C-M-p" . 'bt/org-plan)
-     ("C-M-x" . 'bt/org-clear-todo)
-     ("C-M-r" . 'bt/org-reset-subtree)
-     ("C-M-t" . 'bt/org-todo)
-     ("C-M-d" . 'bt/org-done)
-     ("C-M-w" . 'bt/org-wait)
-     ("C-M-s" . 'bt/org-skip)
+     ;; ("C-M-f" . '%org-finish)
+     ;; ("C-M-c" . '%org-complete)
+     ;; ("C-M-p" . '%org-plan)
+     ("C-M-x" . '%org-clear-todo)
+     ("C-M-r" . '%org-reset-subtree)
+     ("C-M-t" . '%org-todo)
+     ("C-M-d" . '%org-done)
+     ("C-M-w" . '%org-wait)
+     ("C-M-s" . '%org-skip)
 
-     ("C-M-a" . 'bt/org-agenda)
-     ("C-M-c" . 'bt/org-checklist)
+     ("C-M-a" . '%org-agenda)
+     ("C-M-c" . '%org-checklist)
 
-     ("M-# M-l" . 'bt/org-journal-entry)
-     ("M-# M-i M-l" . 'bt/org-journal-entry)
-     ("M-# M-i M-d" . 'bt/org-insert-date)
-     ("M-# M-i M-t" . 'bt/org-insert-datetime)
-     ("M-# M-i M-a" . 'bt/org-create-archive)
+     ("M-# M-l" . '%org-journal-entry)
+     ("M-# M-i M-l" . '%org-journal-entry)
+     ("M-# M-i M-d" . '%org-insert-date)
+     ("M-# M-i M-t" . '%org-insert-datetime)
+     ("M-# M-i M-a" . '%org-create-archive)
 
-     ;; ("M-# M-d M-i" . 'bt/org-deadline-insert)
-     ;; ("M-# M-d M-n" . 'bt/org-deadline-now)
-     ;; ("M-# M-s M-i" . 'bt/org-schedule-insert)
-     ;; ("M-# M-s M-n" . 'bt/org-schedule-now)
+     ;; ("M-# M-d M-i" . '%org-deadline-insert)
+     ;; ("M-# M-d M-n" . '%org-deadline-now)
+     ;; ("M-# M-s M-i" . '%org-schedule-insert)
+     ;; ("M-# M-s M-n" . '%org-schedule-now)
 
      ;; ("M-# d" . 'org-deadline)
      ;; ("M-# s" . 'org-schedule)
 
      ;; ("M-# C-a" . 'org-agenda-list)
 
-     ;; ("M-RET" . 'bt/org-insert-note)
-     ("M-# M-n" . 'bt/org-insert-list-elt)
-     ;; ("M-# M-h" . 'bt/org-insert-heading)
-     ;; ("M-# M-m" . 'bt/org-insert-todo)
+     ;; ("M-RET" . '%org-insert-note)
+     ("M-# M-n" . '%org-insert-list-elt)
+     ;; ("M-# M-h" . '%org-insert-heading)
+     ;; ("M-# M-m" . '%org-insert-todo)
 
-     ;; ("M-# M-t" . 'bt/org-todo)
-     ;; ("M-# M-d" . 'bt/org-done)
-     ;; ("M-# M-c" . 'bt/org-complete)
-     ;; ("M-# M-p" . 'bt/org-plan)
-     ;; ("M-# M-w" . 'bt/org-wait)
+     ;; ("M-# M-t" . '%org-todo)
+     ;; ("M-# M-d" . '%org-done)
+     ;; ("M-# M-c" . '%org-complete)
+     ;; ("M-# M-p" . '%org-plan)
+     ;; ("M-# M-w" . '%org-wait)
 
-     ("M-# M-b" . 'bt/org-begin)
-     ("M-# M-f" . 'bt/org-finish)
+     ("M-# M-b" . '%org-begin)
+     ("M-# M-f" . '%org-finish)
 
-     ("M-# T" . 'bt/table-view)
-     ("M-# c i" . 'bt/clock-in)
-     ("M-# c o" . 'bt/clock-out)
-     ("M-# c DEL" . 'bt/clock-cancel)
+     ("M-# T" . '%table-view)
+     ("M-# c i" . '%clock-in)
+     ("M-# c o" . '%clock-out)
+     ("M-# c DEL" . '%clock-cancel)
 
      ("M-# M-w" . 'org-cut-subtree)
      ("M-# M-c" . 'org-copy-subtree)
@@ -945,10 +945,10 @@
     (org-mode . visual-line-mode)
     (org-mode . (lambda () (progn
                              ;; stopped working in :bind
-                             (bind-key "k" 'bt/org-beginning-of-line modalka-mode-map)
-                             (bind-key ";" 'bt/reset-org-hiding modalka-mode-map)
-                             (bind-key "[" 'bt/noop modalka-mode-map)
-                             (bind-key "]" 'bt/noop modalka-mode-map)
+                             (bind-key "k" '%org-beginning-of-line modalka-mode-map)
+                             (bind-key ";" '%reset-org-hiding modalka-mode-map)
+                             (bind-key "[" '%noop modalka-mode-map)
+                             (bind-key "]" '%noop modalka-mode-map)
                              (bind-key "m" 'outline-previous-visible-heading modalka-mode-map)
                              (bind-key "." 'outline-next-visible-heading modalka-mode-map)
                   )))
@@ -1022,7 +1022,7 @@
 
     ;; (add-hook 'before-save-hook 'org-align-all-tags)
     ;; using this as a hook screws up scrolling while undoing
-    ;; (add-hook 'before-save-hook 'bt/org-update-all-statistics)
+    ;; (add-hook 'before-save-hook '%org-update-all-statistics)
 
     ;; https://gist.githubusercontent.com/ironchicken/6b5424bc2024b3d0a58a8a130f73c2ee/raw/e397e9bc5d31633efb0f04c6c861693f2c30a7cb/clocktable-by-tag.el
     ;; (defun gist/clocktable-by-tag/shift-cell (n)
@@ -1080,7 +1080,7 @@
   (global-unset-key (kbd "C-x C-i"))
   (global-unset-key (kbd "M-`"))
 
-  (defun bt/tmux-copy ()
+  (defun %tmux-copy ()
     (interactive)
     ;; FIXME still doesn't work for strings with "
     (shell-command
