@@ -7,10 +7,6 @@
   (package-initialize)
   (set-display-table-slot standard-display-table 'vertical-border (make-glyph-code ?║))
 
-  (setq backup-directory-alist `(("." . "~/.emacs.d/saves")))
-
-  (setq smerge-command-prefix " t")
-
  ;;; custom theme
   (add-to-list 'custom-theme-load-path "~/.emacs.d/bttheme/")
   (load-theme 'btcolor t)
@@ -58,6 +54,7 @@
   (setq register-preview-delay 0)
   (setq scroll-conservatively 101)
   (setq scroll-margin 2)
+  (setq visible-cursor nil)
 
   (setq-default mode-line-format
                 (list
@@ -86,6 +83,7 @@
   (setq initial-scratch-message (concat "# " (replace-regexp-in-string " (.*\n.*" "" (emacs-version)) "\n\n"))
 
 ;; packages
+ ;;; base/global
   (use-package projectile
     :diminish
     :config
@@ -127,7 +125,6 @@
                    (display-buffer-in-side-window)
                    (inhibit-same-window . t)
                    (window-height . 0.4)))
-
     )
 
   (use-package helm-swoop
@@ -269,9 +266,7 @@
     (setq dumb-jump-selector 'helm)
     (setq dumb-jump-force-searcher 'rg)
     (setq dumb-jump-rg-search-args "-S -M 500")
-    (setq dumb-jump-max-find-time 4)
-  ;; :ensure)
-  )
+    (setq dumb-jump-max-find-time 4))
 
   (use-package undo-tree
     :diminish
@@ -311,7 +306,7 @@
     )
 
 
-  ;; deferred packages
+ ;;; deferred packages
   (use-package cc-mode :defer t
     :config
     (setq-default c-basic-offset 8))
@@ -420,15 +415,82 @@
             (message "%s" (propertize "tests passed" 'face 'success)))))
     ;; (message "%s" (propertize "tests passed" 'face '(:foreground "red"))))))
 
-    (define-key my-keys-minor-mode-map (kbd "M-A") '%first-merlin-error)
-    (define-key my-keys-minor-mode-map (kbd "M-B") 'merlin-error-prev)
-    (define-key my-keys-minor-mode-map (kbd "M-F") 'merlin-error-next)
+    ;; (defun %bop ()
+    ;;   (interactive)
+    ;;   (save-excursion
+    ;;     (move-to-window-line nil)
+    ;;     (recenter-top-bottom)
+    ;;     (recenter-top-bottom)))
 
-    (define-key my-keys-minor-mode-map (kbd "M-T") 'merlin-type-enclosing)
+    ;; (defun %eop ()
+    ;;   (interactive)
+    ;;   (save-excursion
+    ;;     (move-to-window-line nil)
+    ;;     (recenter-top-bottom)))
+
+    (define-key my-keys-minor-mode-map (kbd "C-M-u") '%first-merlin-error)
+    (define-key my-keys-minor-mode-map (kbd "C-M-e") 'merlin-error-prev)
+    (define-key my-keys-minor-mode-map (kbd "C-M-n") 'merlin-error-next)
+
+    (define-key my-keys-minor-mode-map (kbd "C-M-t") 'merlin-type-enclosing)
+
+    (require 'ocamlformat)
+    (define-key my-keys-minor-mode-map (kbd "C-M-f") 'ocamlformat)
 
     ;; menhir/ocamllex
     (add-to-list 'auto-mode-alist '("\\.mll\\'" . tuareg-mode))
     (add-to-list 'auto-mode-alist '("\\.mly\\'" . tuareg-mode)))
+
+  ;; (use-package reason-mode
+  ;;   :init
+  ;;   (defun shell-cmd (cmd)
+  ;;     "Returns the stdout output of a shell command or nil if the command returned
+  ;;  an error"
+  ;;     (car (ignore-errors (apply 'process-lines (split-string cmd)))))
+
+  ;;   (defun reason-cmd-where (cmd)
+  ;;     (let ((where (shell-cmd cmd)))
+  ;;       (if (not (string-equal "unknown flag ----where" where))
+  ;;           where)))
+
+  ;;   (let* ((refmt-bin (or (reason-cmd-where "refmt ----where")
+  ;;                         (shell-cmd "which refmt")
+  ;;                         (shell-cmd "which bsrefmt")))
+  ;;          (merlin-bin (or (reason-cmd-where "ocamlmerlin ----where")
+  ;;                          (shell-cmd "which ocamlmerlin")))
+  ;;          (merlin-base-dir (when merlin-bin
+  ;;                             (replace-regexp-in-string "bin/ocamlmerlin$" "" merlin-bin))))
+  ;;     ;; Add merlin.el to the emacs load path and tell emacs where to find ocamlmerlin
+  ;;     (when merlin-bin
+  ;;       (add-to-list 'load-path (concat merlin-base-dir "share/emacs/site-lisp/"))
+  ;;       (setq merlin-command merlin-bin))
+
+  ;;     (when refmt-bin
+  ;;       (setq refmt-command refmt-bin)))
+
+
+  ;;   ;; (require 'reason-mode)
+  ;;   (require 'merlin)
+  ;;   ;; merlin setup w/opam
+  ;;   (let ((opam-share (ignore-errors (car (process-lines "opam" "config" "var" "share")))))
+  ;;     (when (and opam-share (file-directory-p opam-share))
+  ;;       ;; Register Merlin
+  ;;       (add-to-list 'load-path (expand-file-name "emacs/site-lisp" opam-share))
+  ;;       (autoload 'merlin-mode "merlin" nil t nil)
+  ;;       ;; Automatically start it in OCaml buffers
+  ;;       (add-hook 'tuareg-mode-hook 'merlin-mode t)
+  ;;       (add-hook 'caml-mode-hook 'merlin-mode t)
+  ;;       ;; Use opam switch to lookup ocamlmerlin binary
+  ;;       (setq merlin-command 'opam)))
+
+  ;;   (add-hook 'reason-mode-hook (lambda ()
+  ;;                                 (setq indent-line-function 'indent-relative)
+  ;;                                 (add-hook 'before-save-hook 'refmt-before-save)
+  ;;                                 (merlin-mode)))
+
+  ;;   (define-key my-keys-minor-mode-map (kbd "C-M-t") 'merlin-type-enclosing)
+  ;;   (setq merlin-ac-setup t)
+  ;;   )
 
   (defun %git ()
     (interactive)
@@ -437,7 +499,7 @@
     (magit-process-buffer)
     (other-window 1))
 
-  ;; defer to save .5s at startup, calling %git will load magit
+ ;;; magit
   (use-package magit :defer t
     :bind
     (:map my-keys-minor-mode-map
@@ -587,6 +649,7 @@
 
   ;;   )
 
+ ;;; org
   (use-package org :defer t
     :diminish ('org-indent-mode . "")
     :init
@@ -688,8 +751,6 @@
       (save-excursion
         (%org-done)
         (org-archive-to-archive-sibling)))
-
-    (defalias '%org-archive-to-sibling 'org-archive-to-archive-sibling)
 
     (defun %org-create-archive ()
       (interactive)
@@ -865,7 +926,10 @@
 
     ;; iterm remaps C-; to M-#
     :bind
-    (
+    (:map modalka-mode-map
+     ("m" . 'outline-previous-visible-heading)
+     ("." . 'outline-next-visible-heading)
+     ("k" . '%org-beginning-of-line)
      :map org-mode-map
      ("C-M-h" . 'org-backward-heading-same-level)
      ("C-M-n" . 'outline-next-visible-heading)
@@ -938,11 +1002,11 @@
      ("M-# M-w" . 'org-cut-subtree)
      ("M-# M-c" . 'org-copy-subtree)
      ("M-# M-p" . 'org-paste-subtree)
-
      )
 
     :hook
     (org-mode . visual-line-mode)
+    ;; fixme see if this is needed
     (org-mode . (lambda () (progn
                              ;; stopped working in :bind
                              (bind-key "k" '%org-beginning-of-line modalka-mode-map)
@@ -1080,6 +1144,8 @@
   (global-unset-key (kbd "C-x C-i"))
   (global-unset-key (kbd "M-`"))
 
+
+;; functions
   (defun %tmux-copy ()
     (interactive)
     ;; FIXME still doesn't work for strings with "
@@ -1087,6 +1153,31 @@
      (format-message "tmux set-buffer -b emacsclip \"%s\"" (buffer-substring (mark) (point))))
     (deactivate-mark))
 
+  (defun %show-filepaths ()
+    (interactive)
+    (let ((buffer-path-from-root
+           (replace-regexp-in-string (regexp-quote (projectile-project-root)) "" (buffer-file-name) nil 'literal)))
+      (message (concat "rel: " buffer-path-from-root "\nabs: " (buffer-file-name)))))
+
+  (defun increment-next-number (&optional arg)
+    "Increment the number forward from point by 'arg'."
+    (interactive "p*")
+    (save-excursion
+      (save-match-data
+        (let (inc-by field-width answer)
+          (setq inc-by (if arg arg 1))
+          (skip-chars-backward "0123456789")
+          (when (re-search-forward "[0-9]+" nil t)
+            (setq field-width (- (match-end 0) (match-beginning 0)))
+            (setq answer (+ (string-to-number (match-string 0) 10) inc-by))
+            (when (< answer 0)
+              (setq answer (+ (expt 10 field-width) answer)))
+            (replace-match (format (concat "%0" (int-to-string field-width) "d")
+                                   answer)))))))
+
+  (defun decrement-next-number (&optional arg)
+    (interactive "p*")
+    (increment-next-number (if arg (- arg) -1)))
 
   (load "~/.emacs.d/hide-comnt.el")
   (load "~/.emacs.d/modalka-keys.el")
