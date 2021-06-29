@@ -1159,7 +1159,7 @@
 
   (defun %set-mode-colors ()
     ;; (rainbow-mode)
-    (let* ((colors (cond (modalka-mode         '("#bcd" "#89a"))
+    (let* ((colors (cond (modalka-mode         '("#bce" "#89a"))
                          ;; ((%is-special-buffer) '("#000" "#032" "#044"))
                          (t                    '("#c88" "#a89"))))
            (mode-line-active-bg (car colors))

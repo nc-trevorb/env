@@ -317,7 +317,7 @@ alias rg='rg -i -M 500'
 alias rga='rg --no-ignore'
 alias rgall='rg -M 0 --no-ignore'
 
-alias e='emacs'
+alias e='TERM=xterm-24bit emacs '
 alias org='LOAD_ORG=true emacs'
 
 alias t2='t -L 2'
@@ -565,6 +565,7 @@ function run_command() {
     dull_green "done"
     echo ""
 }
+
 function aws_date() {
     date '+%Y-%m-%d'
 }
@@ -607,6 +608,15 @@ function open-() {
         *)
             echo "unknown: '$1'"
     esac
+}
+
+function desktop() {
+    mv ~/Desktop/* ~/Documents/desktop/current
+
+    if [[ -d ~/Documents/desktop/current/Relocated\ Items ]]; then
+        mv ~/Documents/desktop/current ~/Documents/desktop/$(date '+%Y-%m-%d')
+        mkdir ~/Documents/desktop/current
+    fi
 }
 
 # chruby.sh

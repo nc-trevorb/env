@@ -5,7 +5,7 @@
 (deftheme btcolor
   "originally copied from badger-theme.el")
 
-(setq %bg "#1a202c")
+(setq %bg "#19202c")
 (setq %bg-darker "#111")
 (setq %bg-dark "#181818")
 (setq %bg-gray "#222")
@@ -21,9 +21,6 @@
 (setq %fg-light "#e8e8e8")
 (setq %fg-strong "#fff")
 (setq %fg-weak "#888")
-
-(setq %hl-weak "#456")
-(setq %hl-cursor "#828")
 
 (setq %black "#1a202c")
 (setq %red "#fe8181")
@@ -49,6 +46,15 @@
 (setq %deepblue "#227")
 (setq %deepmagenta "#626")
 (setq %deepcyan "#055")
+
+
+(setq %hl-weak "#123")
+(setq %hl "#234")
+(setq %hl-strong "#345")
+(setq %hl-stronger "#456")
+
+(setq %hl-selection %deepgreen)
+(setq %hl-cursor %deepred)
 
 (setq %black0 "#000")
 (setq %gray1 "#111")
@@ -83,12 +89,12 @@
 (custom-theme-set-faces
  'btcolor
 
- `(default ((t (:foreground ,%white :background ,%bg))))
+ `(default ((t (:foreground ,%fg :background ,%bg))))
  `(linum ((t (:foreground ,%fg-weak :background ,%bg-dark))))
- `(region ((t (:background ,%hl-weak))))
+ `(region ((t (:background ,%hl))))
 
  `(isearch ((t (:background ,%hl-cursor)))) ;; match at cursor
- `(lazy-highlight ((t (:inherit region)))) ;; other matches
+ `(lazy-highlight ((t (:background ,%hl-stronger)))) ;; other matches
 
  `(success ((t (:background "#97e7b3" :weight bold))))
  `(warning ((t (:background "#fcd488" :weight bold))))
@@ -99,8 +105,9 @@
 
  ;; `(mode-line ((t (:background ,%green :foreground ,%magenta ))))
  ;; `(mode-line-inactive ((t (:background ,%gray8 :foreground ,%white ))))
- `(mode-line-active ((t (:foreground "#000"))))
- `(mode-line-inactive ((t (:inherit linum))))
+ ;; `(mode-line-active ((t (:foreground "#000"))))
+ `(mode-line-inactive ((t (:foreground "#000" :background ,%gray4))))
+ `(vertical-border ((t (:foreground ,%gray4 :background ,%gray4))))
  `(mode-line-buffer-id ((t (:foreground ,%white :weight bold))))
  `(minibuffer-prompt ((t (:foreground ,%blue))))
 
@@ -115,17 +122,17 @@
  `(font-lock-type-face ((t (:foreground ,%green))))
  `(font-lock-variable-name-face ((t (:foreground ,%magenta))))
 
- `(helm-selection ((t (:background ,%gray8 :weight bold))))
- ;; `(helm-source-header ((t (:background ,%blue :weight bold))))
- `(helm-match ((t (:foreground ,%brightmagenta :weight bold))))
+ `(helm-selection ((t (:background ,%hl-selection :weight bold))))
+ `(helm-match ((t (:foreground ,%fg-darker :weight bold :underline t))))
  `(header-line ((t (:foreground "#056" :background "#023"))))
  `(helm-source-header ((t (:inherit linum))))
  `(helm-candidate-number ((t (:inherit helm-source-header))))
- ;; `(helm-source-header ((t (:foreground ,%white :background "#402"))))
 
- `(deadgrep-filename-face ((t (:foreground ,%green :weight bold))))
- `(deadgrep-match-face ((t (:background ,%red))))
+ `(helm-swoop-target-line-face ((t (:inherit isearch :weight bold))))
+ `(helm-swoop-target-word-face ((t (:inherit lazy-highlight))))
 
+ `(deadgrep-filename-face ((t (:foreground ,%brightmagenta :weight bold :underline t))))
+ `(deadgrep-match-face ((t (:background ,%deepmagenta))))
 
  ;; other sections
  `(diff-removed ((t (:foreground ,%red))))
@@ -224,8 +231,7 @@
 
 
 ;;;;; org-mode
- ;; `(outline-1 ((t (:foreground ,%magenta))))
- `(outline-1 ((t (:inherit %weak-highlight))))
+ `(outline-1 ((t (:foreground ,%magenta))))
  `(outline-2 ((t (:foreground ,%cyan))))
  `(outline-3 ((t (:foreground ,%green))))
  `(outline-4 ((t (:foreground ,%blue))))

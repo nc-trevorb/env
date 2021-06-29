@@ -26,7 +26,7 @@ tmux split-window -v -p 30 -c "${HOME}/code/design-objects"
 
 tmux new-window -t dev:6 -n 'flik' -c "${HOME}/code/appserver"
 tmux send-keys 'flik repl system_test_workflow' Enter
-tmux split-window -v -c "${HOME}/code/docker-shared"
+tmux split-window -h -c "${HOME}/code/docker-shared"
 tmux send-keys 'e' Enter
 
 tmux select-window -t 1
