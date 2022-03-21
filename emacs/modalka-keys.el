@@ -242,15 +242,13 @@
     (interactive)
     (if (%editable) (save-buffer) (message "not saving...")))
 
+  (defalias '%trim-whitespace 'delete-trailing-whitespace)
+
   (defun %full-save ()
     (interactive)
-    (%whitespace)
-    (%normal))
-
-  (defun %whitespace ()
-    (interactive)
     (delete-trailing-whitespace)
-    (%save))
+    (%save)
+    (%normal))
 
   (defun %select ()
     (interactive)
@@ -474,6 +472,7 @@
       (%down)
       (transpose-lines 1)
       (%up)
+      (%bol)
       (%right col)
       ))
 
@@ -710,7 +709,8 @@
 
   (defun %wip-commit ()
     (interactive)
-    (shell-command "wip"))
+    (%full-save)
+    (shell-command "git add -A && git commit -m '(from emacs)'"))
 
   (defun %pbcopy ()
     (interactive)
@@ -1023,6 +1023,7 @@
         ("M-y" . 'isearch-yank-word-or-char)
         ("M-o" . 'isearch-yank-word-or-char)
         ("M-s" . 'helm-swoop-from-isearch)
+        ("M-a" . 'helm-multi-swoop-all-from-isearch)
         ("C-r" . '%noop)
         ("C-s" . '%noop)
 
@@ -1069,7 +1070,7 @@
         ("f" . '%flip-flop) ("F" . '%noop)
 
         ("a" . '%add) ("A" . '%add-bov)
-        ("r" . '%repeat-command) ("R" . '%noop)
+        ("r" . '%exchange) ("R" . '%exchange-regex)
         ("s" . '%select) ("S" . '%select-line)
         ("T" . '%noop)
         ("g" . '%graft) ("G" . 'xah-toggle-previous-letter-case)
@@ -1087,16 +1088,16 @@
         ("SPC u" . '%undo-tree)
         ("SPC p" . '%paste-from-history)
         ("SPC c" . '%pbcopy)
-        ("SPC r" . '%pbcopy-ruby)
         ("SPC s" . '%reselect)
-        ("SPC x" . '%exchange-regex)
-        ("SPC X" . '%query-exchange-regex)
+        ("SPC r" . '%query-exchange)
+        ("SPC R" . '%query-exchange-regex)
 
         ;; command
         ("SPC b" . '%quick-bookmark)
         ("SPC f" . '%quick-find-bookmark)
         ("SPC B" . '%bookmark)
         ("SPC F" . '%find-bookmark)
+        ("SPC M-$" . '%wip-commit)
         ("SPC g" . '%git)
         ("SPC G" . 'nc/open-in-github)
         ("SPC n" . '%note)
@@ -1106,7 +1107,7 @@
         ("SPC (" . '%eval-expr) ("SPC )" . '%eval-inline)
 
         ("," . '%m-x-menu) ("<" . '%noop)
-        ("x" . '%exchange) ("X" . '%query-exchange)
+        ("x" . '%noop) ("X" . '%noop)
         ("C" . '%copy-line)
         ("D" . '%dupe-line)
         ("v" . '%vanish) ("V" . '%noop)
@@ -1119,7 +1120,7 @@
         ("=t" . '%rect-trade)
         ("=w" . '%rect-wipe)
         ("=p" . '%rect-paste)
-        ("j" . '%join-line-below) ("J" . '%join-line-above)
+        ("j" . '%bov) ("J" . '%join-line-below)
 
         ("`" . 'pop-global-mark) ("~" . 'helm-all-mark-rings)
         ("(" . 'pop-to-mark-command) (")" . '%cycle-spacing)
@@ -1139,7 +1140,7 @@
         ("o" . '%eow) ("O" . '%eoW)
         ("'" . '%search) ("\"" . '%search)
 
-        ("k" . '%bov) ("K" . '%noop)
+        ("k" . '%redo) ("K" . '%undo-tree)
         ("m" . '%bop) ("M" . '%bob)
         ("DEL" . '%bs)
         ("." . '%eop) (">" . '%eob)
@@ -1159,14 +1160,16 @@
 
   (defun %set-mode-colors ()
     ;; (rainbow-mode)
-    (let* ((colors (cond (modalka-mode         '("#bce" "#89a"))
+    (let* ((colors (cond (modalka-mode         '("#bce" "#89a" "#141822"))
                          ;; ((%is-special-buffer) '("#000" "#032" "#044"))
-                         (t                    '("#c88" "#a89"))))
+                         (t                    '("#c88" "#a89" "#181114"))))
            (mode-line-active-bg (car colors))
-           (linum-fg (cadr colors))
+           (line-number-fg (cadr colors))
+           (line-number-bg (caddr colors))
            )
       (set-face-background 'mode-line mode-line-active-bg)
-      (if (featurep 'linum) (set-face-foreground 'linum linum-fg))
+      (set-face-foreground 'line-number line-number-fg)
+      (set-face-background 'line-number line-number-bg)
       ))
 
   (define-key global-map (kbd "C-M-x") ctl-x-map)

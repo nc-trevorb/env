@@ -90,18 +90,20 @@
  'btcolor
 
  `(default ((t (:foreground ,%fg :background ,%bg))))
- `(linum ((t (:foreground ,%fg-weak :background ,%bg-dark))))
+ ;; `(line-number ((t (:foreground ,%fg-weak :background ,%bg-dark)))) ;; set in modalka-keys.el
+ `(line-number-current-line ((t (:inherit line-number :underline t))))
+ ;; `(linum ((t (:foreground ,%fg-weak :background ,%bg-dark))))
  `(region ((t (:background ,%hl))))
 
  `(isearch ((t (:background ,%hl-cursor)))) ;; match at cursor
  `(lazy-highlight ((t (:background ,%hl-stronger)))) ;; other matches
 
- `(success ((t (:background "#97e7b3" :weight bold))))
- `(warning ((t (:background "#fcd488" :weight bold))))
- `(error ((t (:background "#611" :weight bold))))
+ `(success ((t (:background ,%green :weight bold))))
+ `(warning ((t (:background ,%brightyellow :weight bold))))
+ `(error ((t (:background ,%deepred :weight bold))))
 
  `(whitespace-newline ((t (:foreground ,%bg :background ,%bg))))
- `(whitespace-trailing ((t (:foreground ,%gray3 :background ,%gray3))))
+ `(whitespace-trailing ((t (:inherit error))))
 
  ;; `(mode-line ((t (:background ,%green :foreground ,%magenta ))))
  ;; `(mode-line-inactive ((t (:background ,%gray8 :foreground ,%white ))))
@@ -125,7 +127,7 @@
  `(helm-selection ((t (:background ,%hl-selection :weight bold))))
  `(helm-match ((t (:foreground ,%fg-darker :weight bold :underline t))))
  `(header-line ((t (:foreground "#056" :background "#023"))))
- `(helm-source-header ((t (:inherit linum))))
+ `(helm-source-header ((t (:foreground ,%fg-weak :background ,%bg-dark))))
  `(helm-candidate-number ((t (:inherit helm-source-header))))
 
  `(helm-swoop-target-line-face ((t (:inherit isearch :weight bold))))
@@ -139,13 +141,13 @@
  `(diff-added ((t (:foreground ,%green))))
 
  ;; current section
- `(diff-refine-removed ((t (:foreground ,%brightred :background ,%gray3))))
- `(diff-refine-added ((t (:foreground ,%brightgreen :background ,%gray3))))
+ `(diff-refine-removed ((t (:foreground ,%brightred :background ,%hl))))
+ `(diff-refine-added ((t (:foreground ,%brightgreen :background ,%hl))))
 
 
 ;;;;; magit
 ;;;;;; headings and diffs
- `(magit-section-highlight           ((t (:background ,%gray3))))
+ `(magit-section-highlight           ((t (:background ,%hl))))
  `(magit-section-heading             ((t (:foreground ,%yellow :weight bold))))
  `(magit-section-heading-selection   ((t (:foreground ,%red :weight bold))))
 
@@ -155,17 +157,17 @@
  `(magit-diff-removed-highlight ((t (:inherit diff-refine-removed))))
 
  `(magit-diff-file-heading           ((t (:weight bold))))
- `(magit-diff-file-heading-highlight ((t (:background ,%gray3 :weight bold))))
+ `(magit-diff-file-heading-highlight ((t (:background ,%hl :weight bold))))
  ;; `(magit-diff-file-heading-selection ((t (:background ,%green :foreground ,%cyan :weight bold))))
  ;; current section
- `(magit-diff-hunk-heading-highlight ((t (:background ,%gray3 :foreground ,%brightcyan))))
+ `(magit-diff-hunk-heading-highlight ((t (:background ,%hl :foreground ,%brightcyan))))
  `(magit-diff-hunk-heading           ((t (:foreground ,%cyan))))
-                                        ; `(magit-diff-hunk-heading-selection ((t (:background ,%brightmagenta :foreground ,%cyan))))
+ ;; `(magit-diff-hunk-heading-selection ((t (:background ,%brightmagenta :foreground ,%cyan))))
  `(magit-diff-lines-heading          ((t (:foreground ,%cyan))))
- `(magit-diff-context-highlight      ((t (:background ,%gray3))))
+ `(magit-diff-context-highlight      ((t (:background ,%hl))))
 
- `(magit-diffstat-added   ((t (:foreground ,%green))))
- `(magit-diffstat-removed ((t (:foreground ,%red))))
+ `(magit-diffstat-added   ((t (:inherit diff-added))))
+ `(magit-diffstat-removed ((t (:inherit diff-removed))))
 ;;;;;; popup
  `(magit-popup-heading             ((t (:foreground ,%yellow  :weight bold))))
  `(magit-popup-key                 ((t (:foreground ,%brightgreen :weight bold))))
@@ -225,6 +227,10 @@
  `(magit-reflog-remote       ((t (:foreground ,%cyan))))
  `(magit-reflog-other ((t (:foreground ,%cyan))))
 
+;;;;; ruby
+ `(enh-ruby-op-face ((t (:inherit default))))
+ `(enh-ruby-string-delimiter-face ((t (:inherit font-lock-string-face))))
+
 ;;;;; ocaml
  `(tuareg-font-lock-extension-node-face ((t (:background ,%gray8 :foreground ,%blue))))
  `(tuareg-font-lock-infix-extension-node-face ((t (:background ,%gray8 :foreground ,%blue))))
@@ -252,7 +258,7 @@
  `(org-todo ((t (:weight bold :foreground ,%brightred))))
 
  `(org-warning ((t (:foreground ,%red))))
- `(org-code ((t (:background ,%gray8 :foreground ,%yellow))))
+ `(org-code ((t (:background ,%hl-strong))))
 
  `(org-ellipsis ((t (:foreground ,%grayb))))
 

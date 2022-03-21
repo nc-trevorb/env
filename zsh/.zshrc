@@ -57,7 +57,7 @@ case "$OS_NAME" in
         ;;
 
     macOS)
-        alias t='tree -C --dirsfirst -I "coverage|build|dist|*srv|elm-stuff|_build|*.byte|*.native|__pycache__|static" '
+        alias t='tree -C --dirsfirst -I "coverage|build|dist|*srv|node_modules|elm-stuff|_build|*.byte|*.native|__pycache__|static" '
         alias ls='ls -G'
         alias l='ls -lhp'
         alias grep='grep --color=auto'
@@ -123,7 +123,7 @@ bindkey '^p' yank
 # bindkey "^'" history-incremental-search-backward
 bindkey "^:" redo
 bindkey '^u' undo
-bindkey '^v' delete-char-or-list
+# bindkey '^v' delete-char-or-list
 bindkey '^t' kill-line
 bindkey '^w' kill-line
 
@@ -241,6 +241,7 @@ prompt_branch_color='magenta'
 prompt_ruby_version_color='red'
 
 function inside_git_repo() { git rev-parse --git-dir > /dev/null 2>&1 }
+function detached_head() { [[ $(git log -n 1 --pretty=%d HEAD) == " (HEAD)" ]] }
 
 function ps_color() {
     local color=$1
@@ -261,8 +262,12 @@ function ps_pwd() { ps_element $prompt_path_color "%~" }
 function ps_timestamp() { ps_element $prompt_time_color "$(date +'%H:%M:%S')" }
 function ps_git_branch() {
     if inside_git_repo; then
-        local branch_name=$(git rev-parse --abbrev-ref HEAD)
-        ps_color $prompt_branch_color "$branch_name"
+        if detached_head; then
+            ps_color $prompt_branch_color "(detached)"
+        else
+            local branch_name=$(git rev-parse --abbrev-ref HEAD)
+            ps_color $prompt_branch_color "$branch_name"
+        fi
     fi
 }
 
@@ -352,15 +357,18 @@ function f() {
 # }
 
 alias d='cd'
-alias du='cd -'
+alias d-='cd -'
 
-function duu() {
-    ruby ~/duu.rb
-    cd $(cat ~/duufile)
-}
+# function d() {
+#     pushd -q "$@"
+# }
 
-# function du () {
+# function d- () {
 #     popd -q "$@"
+# }
+
+# function ds() {
+#     dirs | tr ' ' '\n'
 # }
 
 # function d() {
@@ -379,13 +387,9 @@ function duu() {
 #     # chpwd
 # }
 
-function d.() {
-    chpwd
-}
-
-function ds() {
-    dirs | tr ' ' '\n'
-}
+# function d.() {
+#     chpwd
+# }
 
 function pss() {
     local process_names=$(echo $@ | sed 's/ /\\|/g')
@@ -405,9 +409,12 @@ function wip() {
 
 export NC_USER_ID=trevorb
 
+# skip output after `npm run test`
+export SKIP_COVERAGE_TEXT_SUMMARY=1
+
 
 # opam configuration
-test -r /home/vagrant/.opam/opam-init/init.zsh && . /home/vagrant/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
+# test -r /home/vagrant/.opam/opam-init/init.zsh && . /home/vagrant/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
 
 TZ='America/Denver'; export TZ
 bindkey "^[-" end-of-line
@@ -455,7 +462,11 @@ function ss() {
     if [[ "$script_name" == "testall" ]]; then
         ./script/test $(git diff master --stat --name-only --diff-filter=d | grep '_spec.rb$' | paste -sd ' ' -)
     else
-        ./script/$script_name $@
+        if [[ "$script_name" == "test" ]]; then
+            ./script/$script_name --format doc $@
+        else
+            ./script/$script_name $@
+        fi
     fi
 }
 
@@ -519,6 +530,7 @@ function sshaa() {
     local error_msg=""
     local server_has_ro_option=true
     local badge="${1}"
+    local maybe_data_repair=""
 
     case "${1}" in
         ta) server_name="transamerica"; server_env="ta" ;;
@@ -539,15 +551,16 @@ function sshaa() {
                 error_msg="server ${server_name} has no read-only option"
             fi
             ;;
+        repair) maybe_data_repair="_datarepair";;
         "") ;;
-        *) error_msg="last arg must be 'ro' or blank" ;;
+        *) error_msg="last arg must be 'ro', 'repair', or blank" ;;
     esac
 
     if [[ -n "${error_msg}" ]]; then
         echo "something went wrong: ${error_msg}"
     else
         set_iterm_badge "${badge}"
-        local sshaa_cmd="ssha ${SSHAA_COMMAND} ${server_name}_appserver${maybe_ro} ${server_env}"
+        local sshaa_cmd="ssha ${SSHAA_COMMAND} ${server_name}_appserver${maybe_ro}${maybe_data_repair} ${server_env}"
         echo $sshaa_cmd
         eval $sshaa_cmd
     fi
@@ -556,13 +569,11 @@ function sshaa() {
 
 
 function run_command() {
-    dull_blue "$1"
+    echo "$(tput setaf 4)$1$(tput sgr0)"
     echo "..."
     echo "$2"
-    # FIXME redirect somewhere
-    # (this is dumping every line of output, where aws overwrites last line)
     eval "$2"
-    dull_green "done"
+    echo "$(tput setaf 2)done$(tput sgr0)"
     echo ""
 }
 
@@ -581,11 +592,43 @@ function s3_archive_and_deploy_() {
     run_command "deploying artifacts from archive" "aws s3 cp ${archive_path} ${deploy_path} --profile softwareDeployLead"
 }
 
-function s3_run_deploy() {
+function s3_archive_() {
+    local aws_env="${1}"
+    local file_name="${2}"
+    local local_path="~/Downloads/${file_name}"
+    local archive_path="s3://nc-nonprod-deployment/afa/${aws_env}/archive/$(aws_date)/${file_name}"
+    local deploy_path="s3://nc-nonprod-deployment/afa/${aws_env}/${file_name}"
+
+    run_command "copying local artifacts to archive" "aws s3 cp ${local_path} ${archive_path} --profile softwareDeployLead"
+}
+
+function s3_archive_and_deploy() {
     s3_archive_and_deploy_ $1 universe-outcome-server-combo.zip
     s3_archive_and_deploy_ $1 analytic-afa.war
 }
 
+function s3_archive() {
+    s3_archive_ $1 universe-outcome-server-combo.zip
+    s3_archive_ $1 analytic-afa.war
+}
+
+function alert() {
+    local title=$1
+    local message=$2
+
+    osascript -e "display notification \"${message}\" with title \"${title}\""
+}
+
+function timer() {
+    sleep $(echo "$1 * 60" | bc)
+    alert "timer done"
+    # another idea for in-terminal notifications:
+    #   when timer is started, pass arg (or prompt) for a finish_message
+    #   create a new tmux pane (index 99 or something) with `echo finish_message`
+    #   when timer finishes, run `tmux` command to switch to that pane
+    #     (so it is expected to interrupt me if I'm using the terminal,
+    #      and leave the notification on screen if I'm not)
+}
 
 function npmtest() {
     npm run test $@ -- --coverage=false

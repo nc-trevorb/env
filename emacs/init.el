@@ -75,6 +75,11 @@
                  'mode-line-modes
                  ))
 
+  (add-hook 'prog-mode-hook
+            (lambda ()
+              (display-line-numbers-mode)
+              (setq display-line-numbers-width 3)
+              ))
 
  ;;; startup settings
 
@@ -208,10 +213,13 @@
     (:map deadgrep-mode-map
           ("T" . '%deadgrep-toggle-tests)
           ("D" . '%deadgrep-dir)
+          ("Q" . '%deadgrep-dir)
           ("R" . '%deadgrep-regex-search)
           ("S" . '%deadgrep-string-search)
           ("B" . '%deadgrep-before)
           ("A" . '%deadgrep-after)
+          ("C-M-n" . 'deadgrep-forward-filename)
+          ("C-M-e" . 'deadgrep-backward-filename)
           ("{" . '%deadgrep-edit-search-term)
           )
     )
@@ -226,17 +234,14 @@
           '((newline-mark 10 [182 10]) ; LINE FEED,
             (tab-mark 9 [8677 9] [92 9]) ; tab
             ))
-    ;; (global-whitespace-mode)
-
-    ;; not working with global-whitespace-mode enabled, not sure why
-    ;; (set-display-table-slot standard-display-table 'vertical-border (make-glyph-code ?║))
+    (global-whitespace-mode)
     )
 
-  (use-package linum
-    :config
-    ;; (set-display-table-slot standard-display-table 'vertical-border (make-glyph-code ?║))
-    (setq linum-format "%4d│")
-    (add-hook 'prog-mode-hook #'linum-mode))
+  ;; (use-package linum
+  ;;   :config
+  ;;   ;; (set-display-table-slot standard-display-table 'vertical-border (make-glyph-code ?║))
+  ;;   (setq linum-format "%4d│")
+  ;;   (add-hook 'prog-mode-hook #'linum-mode))
 
   (use-package eldoc :diminish)
   (use-package hideshow
@@ -362,107 +367,132 @@
 
     (define-key my-keys-minor-mode-map (kbd "C-c >") '%python-repl))
 
-  (use-package ruby-mode :defer t
-    :config
-    (setq ruby-insert-encoding-magic-comment nil)
-    (setq ruby-align-to-stmt-keywords t) ;; fix indentation for `if`
-    ;; (add-to-list 'interpreter-mode-alist '("ruby" . ruby-mode))
+  (use-package enh-ruby-mode :defer t
+    :init
+    (add-to-list 'interpreter-mode-alist '("ruby" . enh-ruby-mode))
     (add-to-list 'auto-mode-alist
-                 '("\\.\\(?:cap\\|gemspec\\|irbrc\\|gemrc\\|rake\\|rb\\|ru\\|thor\\)\\'" . ruby-mode))
+                 '("\\.\\(?:cap\\|gemspec\\|irbrc\\|gemrc\\|rake\\|rb\\|ru\\|thor\\)\\'" . enh-ruby-mode))
     (add-to-list 'auto-mode-alist
-                 '("\\(?:Brewfile\\|Vagrantfile\\|Capfile\\|Gemfile\\(?:\\.[a-zA-Z0-9._-]+\\)?\\|[rR]akefile\\)\\'" . ruby-mode))
+                 '("\\(?:Brewfile\\|Vagrantfile\\|Capfile\\|Gemfile\\(?:\\.[a-zA-Z0-9._-]+\\)?\\|[rR]akefile\\)\\'" . enh-ruby-mode))
+    (remove-hook 'enh-ruby-mode-hook 'erm-define-faces)
 
-    (defun %rspec-swoop ()
-      (interactive)
-      (helm-swoop :$query "describe\\ \\|context\\|\\ it\\ \\|_examples")
-      )
+    :config
+    (setq enh-ruby-deep-indent-paren nil)
+    (setq enh-ruby-deep-indent-construct nil)
+
+    (setq enh-ruby-extra-keywords
+          '("include_examples" "shared_examples"
+            "include_context" "shared_context"
+            "describe" "context" "it"
+            "xdescribe" "xcontext" "xit"
+            "fdescribe" "fcontext" "fit"
+            "before" "after"
+            "let" "let_it_be"
+            ))
+    )
+
+  ;; (use-package ruby-mode :defer t
+  ;;   :config
+  ;;   (setq ruby-insert-encoding-magic-comment nil)
+  ;;   (setq ruby-align-to-stmt-keywords t) ;; fix indentation for `if`
+
+  ;;   ;; (add-to-list 'interpreter-mode-alist '("ruby" . ruby-mode))
+  ;;   (add-to-list 'auto-mode-alist
+  ;;                '("\\.\\(?:cap\\|gemspec\\|irbrc\\|gemrc\\|rake\\|rb\\|ru\\|thor\\)\\'" . ruby-mode))
+  ;;   (add-to-list 'auto-mode-alist
+  ;;                '("\\(?:Brewfile\\|Vagrantfile\\|Capfile\\|Gemfile\\(?:\\.[a-zA-Z0-9._-]+\\)?\\|[rR]akefile\\)\\'" . ruby-mode))
+
+  ;;   (defun %rspec-swoop ()
+  ;;     (interactive)
+  ;;     (helm-swoop :$query "describe\\ \\|context\\|\\ it\\ \\|_examples")
+  ;;     )
 
     ;; (define-key my-keys-minor-mode-map (kbd "C-M-t") '%rspec-swoop)
 
     ;; from https://emacs.stackexchange.com/a/39450
-    (defun ruby-smie-rules (kind token)
-      (pcase (cons kind token)
-        (`(:elem . basic) ruby-indent-level)
-        ;; "foo" "bar" is the concatenation of the two strings, so the second
-        ;; should be aligned with the first.
-        (`(:elem . args) (if (looking-at "\\s\"") 0))
-        ;; (`(:after . ",") (smie-rule-separator kind))
-        (`(:before . ";")
-         (cond
-          ((smie-rule-parent-p "def" "begin" "do" "class" "module" "for"
-                               "while" "until" "unless"
-                               "if" "then" "elsif" "else" "when"
-                               "rescue" "ensure" "{")
-           (smie-rule-parent ruby-indent-level))
-          ;; For (invalid) code between switch and case.
-          ;; (if (smie-parent-p "switch") 4)
-          ))
-        (`(:before . ,(or `"(" `"[" `"{"))
-         (cond
-          ((and (equal token "{")
-                (not (smie-rule-prev-p "(" "{" "[" "," "=>" "=" "return" ";"))
-                (save-excursion
-                  (forward-comment -1)
-                  (not (eq (preceding-char) ?:))))
-           ;; Curly block opener.
-           (ruby-smie--indent-to-stmt))
-          ((smie-rule-hanging-p)
-           ;; Treat purely syntactic block-constructs as being part of their parent,
-           ;; when the opening token is hanging and the parent is not an
-           ;; open-paren.
-           (cond
-            ((eq (car (smie-indent--parent)) t) nil)
-            ;; When after `.', let's always de-indent,
-            ;; because when `.' is inside the line, the
-            ;; additional indentation from it looks out of place.
-            ((smie-rule-parent-p ".")
-             ;; Traverse up the call chain until the parent is not `.',
-             ;; or `.' at indentation, or at eol.
-             (while (and (not (ruby-smie--bosp))
-                         (equal (nth 2 (smie-backward-sexp ".")) ".")
-                         (not (ruby-smie--bosp)))
-               (forward-char -1))
-             (smie-indent-virtual))
-            (t (smie-rule-parent))))))
-        (`(:after . ,(or `"(" "[" "{"))
-         ;; FIXME: Shouldn't this be the default behavior of
-         ;; `smie-indent-after-keyword'?
-         (save-excursion
-           (smie-rule-parent)))
-        (`(:before . " @ ")
-         (save-excursion
-           (skip-chars-forward " \t")
-           (cons 'column (current-column))))
-        (`(:before . "do") (ruby-smie--indent-to-stmt))
-        (`(:before . ".")
-         (if (smie-rule-sibling-p)
-             (and ruby-align-chained-calls 0)
-           (smie-backward-sexp ".")
-           (cons 'column (+ (current-column)
-                            ruby-indent-level))))
-        (`(:before . ,(or `"else" `"then" `"elsif" `"rescue" `"ensure"))
-         (smie-rule-parent))
-        (`(:before . "when")
-         ;; Align to the previous `when', but look up the virtual
-         ;; indentation of `case'.
-         (if (smie-rule-sibling-p) 0 (smie-rule-parent)))
-        (`(:after . ,(or "=" "+" "-" "*" "/" "&&" "||" "%" "**" "^" "&"
-                         "<=>" ">" "<" ">=" "<=" "==" "===" "!=" "<<" ">>"
-                         "+=" "-=" "*=" "/=" "%=" "**=" "&=" "|=" "^=" "|"
-                         "<<=" ">>=" "&&=" "||=" "and" "or"))
-         (and (smie-rule-parent-p ";" nil)
-              (smie-indent--hanging-p)
-              ruby-indent-level))
-        (`(:after . ,(or "?" ":")) ruby-indent-level)
-        (`(:before . ,(guard (memq (intern-soft token) ruby-alignable-keywords)))
-         (when (not (ruby--at-indentation-p))
-           (if (ruby-smie--indent-to-stmt-p token)
-               (ruby-smie--indent-to-stmt)
-             (cons 'column (current-column)))))
-        (`(:before . "iuwu-mod")
-         (smie-rule-parent ruby-indent-level))
-        ))
-    )
+    ;; (defun ruby-smie-rules (kind token)
+    ;;   (pcase (cons kind token)
+    ;;     (`(:elem . basic) ruby-indent-level)
+    ;;     ;; "foo" "bar" is the concatenation of the two strings, so the second
+    ;;     ;; should be aligned with the first.
+    ;;     (`(:elem . args) (if (looking-at "\\s\"") 0))
+    ;;     ;; (`(:after . ",") (smie-rule-separator kind))
+    ;;     (`(:before . ";")
+    ;;      (cond
+    ;;       ((smie-rule-parent-p "def" "begin" "do" "class" "module" "for"
+    ;;                            "while" "until" "unless"
+    ;;                            "if" "then" "elsif" "else" "when"
+    ;;                            "rescue" "ensure" "{")
+    ;;        (smie-rule-parent ruby-indent-level))
+    ;;       ;; For (invalid) code between switch and case.
+    ;;       ;; (if (smie-parent-p "switch") 4)
+    ;;       ))
+    ;;     (`(:before . ,(or `"(" `"[" `"{"))
+    ;;      (cond
+    ;;       ((and (equal token "{")
+    ;;             (not (smie-rule-prev-p "(" "{" "[" "," "=>" "=" "return" ";"))
+    ;;             (save-excursion
+    ;;               (forward-comment -1)
+    ;;               (not (eq (preceding-char) ?:))))
+    ;;        ;; Curly block opener.
+    ;;        (ruby-smie--indent-to-stmt))
+    ;;       ((smie-rule-hanging-p)
+    ;;        ;; Treat purely syntactic block-constructs as being part of their parent,
+    ;;        ;; when the opening token is hanging and the parent is not an
+    ;;        ;; open-paren.
+    ;;        (cond
+    ;;         ((eq (car (smie-indent--parent)) t) nil)
+    ;;         ;; When after `.', let's always de-indent,
+    ;;         ;; because when `.' is inside the line, the
+    ;;         ;; additional indentation from it looks out of place.
+    ;;         ((smie-rule-parent-p ".")
+    ;;          ;; Traverse up the call chain until the parent is not `.',
+    ;;          ;; or `.' at indentation, or at eol.
+    ;;          (while (and (not (ruby-smie--bosp))
+    ;;                      (equal (nth 2 (smie-backward-sexp ".")) ".")
+    ;;                      (not (ruby-smie--bosp)))
+    ;;            (forward-char -1))
+    ;;          (smie-indent-virtual))
+    ;;         (t (smie-rule-parent))))))
+    ;;     (`(:after . ,(or `"(" "[" "{"))
+    ;;      ;; FIXME: Shouldn't this be the default behavior of
+    ;;      ;; `smie-indent-after-keyword'?
+    ;;      (save-excursion
+    ;;        (smie-rule-parent)))
+    ;;     (`(:before . " @ ")
+    ;;      (save-excursion
+    ;;        (skip-chars-forward " \t")
+    ;;        (cons 'column (current-column))))
+    ;;     (`(:before . "do") (ruby-smie--indent-to-stmt))
+    ;;     (`(:before . ".")
+    ;;      (if (smie-rule-sibling-p)
+    ;;          (and ruby-align-chained-calls 0)
+    ;;        (smie-backward-sexp ".")
+    ;;        (cons 'column (+ (current-column)
+    ;;                         ruby-indent-level))))
+    ;;     (`(:before . ,(or `"else" `"then" `"elsif" `"rescue" `"ensure"))
+    ;;      (smie-rule-parent))
+    ;;     (`(:before . "when")
+    ;;      ;; Align to the previous `when', but look up the virtual
+    ;;      ;; indentation of `case'.
+    ;;      (if (smie-rule-sibling-p) 0 (smie-rule-parent)))
+    ;;     (`(:after . ,(or "=" "+" "-" "*" "/" "&&" "||" "%" "**" "^" "&"
+    ;;                      "<=>" ">" "<" ">=" "<=" "==" "===" "!=" "<<" ">>"
+    ;;                      "+=" "-=" "*=" "/=" "%=" "**=" "&=" "|=" "^=" "|"
+    ;;                      "<<=" ">>=" "&&=" "||=" "and" "or"))
+    ;;      (and (smie-rule-parent-p ";" nil)
+    ;;           (smie-indent--hanging-p)
+    ;;           ruby-indent-level))
+    ;;     (`(:after . ,(or "?" ":")) ruby-indent-level)
+    ;;     (`(:before . ,(guard (memq (intern-soft token) ruby-alignable-keywords)))
+    ;;      (when (not (ruby--at-indentation-p))
+    ;;        (if (ruby-smie--indent-to-stmt-p token)
+    ;;            (ruby-smie--indent-to-stmt)
+    ;;          (cons 'column (current-column)))))
+    ;;     (`(:before . "iuwu-mod")
+    ;;      (smie-rule-parent ruby-indent-level))
+    ;;     ))
+    ;; )
 
   (use-package tuareg :defer t
     :config
@@ -471,6 +501,7 @@
       (when (and opam-share (file-directory-p opam-share))
         ;; Register Merlin
         (add-to-list 'load-path (expand-file-name "emacs/site-lisp" opam-share))
+        (require 'ocp-indent)
         (autoload 'merlin-mode "merlin" nil t nil)
         ;; Automatically start it in OCaml buffers
         (add-hook 'tuareg-mode-hook 'merlin-mode t)
@@ -591,7 +622,9 @@
 
      :map magit-mode-map
      ("e" . 'magit-section-backward)
-     ("n" . 'magit-section-forward))
+     ("n" . 'magit-section-forward)
+     ("M-RET" . 'magit-diff-visit-worktree-file)
+     )
 
     :config
     (defalias 'blame 'magit-blame)
@@ -613,6 +646,14 @@
     (defun %magit-checkout-last ()
       (interactive)
       (magit-run-git-async "checkout" "-"))
+
+    (defun %magit-checkout-main ()
+      (interactive)
+      (magit-run-git-async "checkout" "main"))
+
+    (defun %magit-rebase-main ()
+      (interactive)
+      (magit-run-git-async "rebase" "main"))
 
     (defun %magit-checkout-master ()
       (interactive)
@@ -660,13 +701,19 @@
       '("c" "recursive checkout" %magit-submodule-recursive-checkout))
 
     (transient-append-suffix 'magit-branch "b"
-      '("m" "master" %magit-checkout-master))
+      '("M" "master" %magit-checkout-master))
+
+    (transient-append-suffix 'magit-branch "b"
+      '("m" "main" %magit-checkout-main))
 
     (transient-append-suffix 'magit-branch "b"
       '("l" "last branch" %magit-checkout-last))
 
     (transient-append-suffix 'magit-rebase "e"
-      '("m" "master" %magit-rebase-master))
+      '("M" "master" %magit-rebase-master))
+
+    (transient-append-suffix 'magit-rebase "e"
+      '("m" "main" %magit-rebase-main))
 
     (transient-append-suffix 'magit-commit "S"
       '("t" "update timestamp" %magit-update-latest-timestamp))
@@ -947,6 +994,20 @@
       (call-interactively 'org-columns-content)
       )
 
+    (defun %org-promote ()
+      (interactive)
+      (if (org-at-heading-p)
+          (call-interactively 'org-promote-subtree)
+        (call-interactively 'org-outdent-item-tree)
+      ))
+
+    (defun %org-demote ()
+      (interactive)
+      (if (org-at-heading-p)
+          (call-interactively 'org-demote-subtree)
+        (call-interactively 'org-indent-item-tree)
+        ))
+
     (defun %org-morning ()
       (interactive)
       (org-clone-subtree-with-time-shift 1 "+1d")
@@ -1013,6 +1074,7 @@
      ("m" . 'outline-previous-visible-heading)
      ("." . 'outline-next-visible-heading)
      ("k" . '%org-beginning-of-line)
+
      :map org-mode-map
      ("C-M-h" . 'org-backward-heading-same-level)
      ("C-M-n" . 'outline-next-visible-heading)
@@ -1027,8 +1089,10 @@
 
      ("M-<" . 'org-force-cycle-archived)
      ;; ("C-M-a" . '%org-archive-to-sibling) ;; C-M-:
-     ("C-M-l" . 'org-promote-subtree)
-     ("C-M-y" . 'org-demote-subtree)
+     ;; ("C-M-l" . 'org-promote-subtree)
+     ;; ("C-M-y" . 'org-demote-subtree)
+     ("C-M-l" . '%org-promote)
+     ("C-M-y" . '%org-demote)
 
      ("C-M-o" . '%org-insert-heading)
      ("C-M-_" . '%org-insert-child-heading)
@@ -1274,7 +1338,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(yasnippet terraform-mode dumb-jump diminish expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode jinja2-mode helm-projectile)))
+   '(ocamlformat enh-ruby-mode yasnippet terraform-mode dumb-jump diminish expand-region modalka yaml-mode whole-line-or-region web-mode use-package tuareg s rainbow-mode parent-mode org markdown-mode jinja2-mode helm-projectile)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
